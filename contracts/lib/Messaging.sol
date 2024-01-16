@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IStarknetMessaging} from "./interfaces/IStarknetMessaging.sol";
-import {IStarknetBridge} from "./interfaces/IStarknetBridge.sol";
+import {IStarknetMessaging} from "../interfaces/IStarknetMessaging.sol";
+import {IStarknetBridge} from "../interfaces/IStarknetBridge.sol";
 
 /// @title Messaging contract.
 /// @author Spaceshard team 2023.

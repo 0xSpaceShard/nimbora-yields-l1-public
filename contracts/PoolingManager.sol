@@ -6,7 +6,7 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {ErrorLib} from "./lib/ErrorLib.sol";
-import {Messaging} from "./Messaging.sol";
+import {Messaging} from "./lib/Messaging.sol";
 import "./interfaces/IPoolingManager.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
 import {IStrategyBase} from "./interfaces/IStrategyBase.sol";
