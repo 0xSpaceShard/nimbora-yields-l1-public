@@ -9,6 +9,9 @@ contract UniswapV3StrategyDiffDecimals is UniswapV3Strategy {
     uint256 public underlyingTokenPrecision;
     uint256 public yieldTokenPrecision;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() initializer {}
+
     function initialize(
         address _l2PoolingManager,
         address _underlyingToken,

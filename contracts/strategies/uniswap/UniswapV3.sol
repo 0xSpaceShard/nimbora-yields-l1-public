@@ -17,8 +17,11 @@ contract UniswapV3Strategy is StrategyBase {
     uint256 public minReceivedAmountFactor;
     uint24 public poolFee;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() initializer {}
+
     function initialize(
-        address _l2PoolingManager,
+        address _poolingManager,
         address _underlyingToken,
         address _yieldToken,
         address _uniswapRouter,
@@ -27,11 +30,7 @@ contract UniswapV3Strategy is StrategyBase {
         uint256 _minReceivedAmountFactor,
         uint24 _poolFee
     ) public virtual initializer {
-        initializeStrategyBase(
-            _l2PoolingManager,
-            _underlyingToken,
-            _yieldToken
-        );
+        initializeStrategyBase(_poolingManager, _underlyingToken, _yieldToken);
         _initializeUniswap(
             _uniswapRouter,
             _uniswapFactory,
@@ -42,6 +41,29 @@ contract UniswapV3Strategy is StrategyBase {
         _initializeChainlink(_chainlinkPricefeed);
         _setSlippage(_minReceivedAmountFactor);
         _checkDecimals(_underlyingToken, _yieldToken);
+    }
+
+    function setMinReceivedAmountFactor(
+        uint256 _minReceivedAmountFactor
+    ) public {
+        _assertOnlyRoleOwner();
+        _setSlippage(_minReceivedAmountFactor);
+    }
+
+    function chainlinkLatestAnswer() public view returns (int256) {
+        return _chainlinkLatestAnswer();
+    }
+
+    function applySlippageDepositExactInputSingle(
+        uint256 amount
+    ) public view returns (uint256) {
+        return _applySlippageDepositExactInputSingle(amount);
+    }
+
+    function applySlippageWithdrawExactOutputSingle(
+        uint256 amount
+    ) public view returns (uint256) {
+        return _applySlippageWithdrawExactOutputSingle(amount);
     }
 
     function _initializeUniswap(
@@ -66,8 +88,14 @@ contract UniswapV3Strategy is StrategyBase {
             _poolFee
         );
         require(poolAddress != address(0), "Pool does not exist");
-
         poolFee = _poolFee;
+
+        IERC20(_underlyingToken).approve(
+            _uniswapRouterAddress,
+            type(uint256).max
+        );
+
+        IERC20(_yieldToken).approve(_uniswapRouterAddress, type(uint256).max);
     }
 
     function _initializeChainlink(address chainlinkPricefeedAddress) internal {
@@ -128,6 +156,7 @@ contract UniswapV3Strategy is StrategyBase {
             yieldAmount
         );
         uint256 yieldBalance = yieldBalance();
+
         if (amountInMaximum > yieldBalance) {
             uint256 underlyingAmount = _calculateYieldToUnderlyingAmount(
                 chainlinkLatestAnswer,

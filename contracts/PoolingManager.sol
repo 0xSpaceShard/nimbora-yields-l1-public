@@ -10,8 +10,10 @@ import {Messaging} from "./Messaging.sol";
 import "./interfaces/IPoolingManager.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
 import {IStrategyBase} from "./interfaces/IStrategyBase.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract PoolingManager is
+    UUPSUpgradeable,
     AccessControlUpgradeable,
     PausableUpgradeable,
     ReentrancyGuardUpgradeable,
@@ -51,6 +53,16 @@ contract PoolingManager is
         0x10e13e50cb99b6b3c8270ec6e16acfccbe1164a629d74b43549567a77593aff;
     bytes32 public constant RELAYER_ROLE = keccak256("0x01");
 
+    /**
+     * @dev Receive Ether function
+     */
+    receive() external payable {}
+
+    /**
+     * @dev Fallback function
+     */
+    fallback() external payable {}
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() initializer {}
 
@@ -66,6 +78,7 @@ contract PoolingManager is
     ) public initializer {
         __Pausable_init();
         __AccessControl_init();
+        __UUPSUpgradeable_init();
         initializeMessaging(_starknetCore);
         l2PoolingManager = _l2PoolingManager;
         _grantRole(0, _owner);
@@ -603,6 +616,10 @@ contract PoolingManager is
             amount: currentReport.amount
         });
     }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyRole(0) {}
 
     function updateBridgeDepositInfo(
         BridgeInteractionInfo[] memory tempBridgeLoss,
