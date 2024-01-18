@@ -205,6 +205,13 @@ contract PoolingManager is
         emit StrategyRegistered(_strategy, newStrategyInfo);
     }
 
+    function setPoolingManager(
+        uint256 _l2PoolingManager
+    ) public payable onlyRole(0) {
+        if (_l2PoolingManager == (0)) revert ErrorLib.ZeroAddress();
+        l2PoolingManager = _l2PoolingManager;
+    }
+
     function cancelDepositRequestBridge(
         address l1BridgeAddress,
         uint256 amount,

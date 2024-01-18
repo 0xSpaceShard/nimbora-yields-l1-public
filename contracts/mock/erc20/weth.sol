@@ -48,6 +48,10 @@ contract WETH9 {
         emit Withdrawal(msg.sender, wad);
     }
 
+    function mint(uint256 amount, address receiver) public {
+        balanceOf[receiver] += amount;
+    }
+
     function totalSupply() public view returns (uint) {
         return address(this).balance;
     }
