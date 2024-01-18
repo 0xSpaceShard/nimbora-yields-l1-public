@@ -32,7 +32,6 @@ contract PoolingManager is
     StrategyReportL2[] public pendingRequests;
     StrategyReportL1[] public pendingRequestsExecuted;
     uint256 public pendingRequestsExecutedCounter;
-    uint256[] public reportL1Hashes;
 
     event PendingRequestsExecuted(uint256[] indices);
     event MessageResentToL2();
@@ -74,7 +73,9 @@ contract PoolingManager is
         address _owner,
         uint256 _l2PoolingManager,
         address _starknetCore,
-        address _relayer
+        address _relayer,
+        address _ethBridge,
+        address _ethWrapped
     ) public initializer {
         __Pausable_init();
         __AccessControl_init();
@@ -82,22 +83,24 @@ contract PoolingManager is
         initializeMessaging(_starknetCore);
         l2PoolingManager = _l2PoolingManager;
         _grantRole(0, _owner);
+        _grantRole(RELAYER_ROLE, _owner);
         _grantRole(RELAYER_ROLE, _relayer);
-        ethBridge = ethBridge;
-        ethWrapped = ethWrapped;
+        ethBridge = _ethBridge;
+        ethWrapped = _ethWrapped;
     }
 
-    function hashFromCalldata(
+    function hashFromReportL2(
+        uint256 epoch,
         BridgeInteractionInfo[] memory bridgeWithdrawInfo,
         StrategyReportL2[] memory strategyReportL2,
         BridgeInteractionInfo[] memory bridgeDepositInfo
     ) public pure returns (uint256) {
-        bytes memory encodedData = abi.encodePacked();
+        bytes memory encodedData = abi.encodePacked(epoch);
 
         for (uint i = 0; i < bridgeWithdrawInfo.length; i++) {
             encodedData = abi.encodePacked(
                 encodedData,
-                bridgeWithdrawInfo[i].bridge,
+                uint256(uint160(bridgeWithdrawInfo[i].bridge)),
                 bridgeWithdrawInfo[i].amount
             );
         }
@@ -105,7 +108,7 @@ contract PoolingManager is
         for (uint i = 0; i < strategyReportL2.length; i++) {
             encodedData = abi.encodePacked(
                 encodedData,
-                strategyReportL2[i].l1Strategy,
+                uint256(uint160(strategyReportL2[i].l1Strategy)),
                 strategyReportL2[i].actionId,
                 strategyReportL2[i].amount
             );
@@ -114,7 +117,7 @@ contract PoolingManager is
         for (uint i = 0; i < bridgeDepositInfo.length; i++) {
             encodedData = abi.encodePacked(
                 encodedData,
-                bridgeDepositInfo[i].bridge,
+                uint256(uint160(bridgeDepositInfo[i].bridge)),
                 bridgeDepositInfo[i].amount
             );
         }
@@ -124,15 +127,13 @@ contract PoolingManager is
     }
 
     function hashFromReportL1(
-        uint256 epoch,
         StrategyReportL1[] memory strategyReportL1
     ) public pure returns (uint256) {
-        bytes memory encodedData = abi.encodePacked(epoch);
-
+        bytes memory encodedData = abi.encodePacked();
         for (uint i = 0; i < strategyReportL1.length; i++) {
             encodedData = abi.encodePacked(
                 encodedData,
-                strategyReportL1[i].l1Strategy,
+                uint256(uint160(strategyReportL1[i].l1Strategy)),
                 strategyReportL1[i].l1Nav,
                 strategyReportL1[i].amount
             );
@@ -186,10 +187,13 @@ contract PoolingManager is
         address _strategy,
         address _underlying,
         address _bridge
-    ) public payable {
+    ) public payable onlyRole(0) {
         if (_underlying == address(0)) revert ErrorLib.ZeroAddress();
         if (_bridge == address(0)) revert ErrorLib.ZeroAddress();
         if (_strategy == address(0)) revert ErrorLib.ZeroAddress();
+
+        if (IStrategyBase(_strategy).poolingManager() != address(this))
+            revert ErrorLib.InvalidPoolingManager();
 
         StrategyInfo memory newStrategyInfo = StrategyInfo({
             underlying: _underlying,
@@ -199,24 +203,6 @@ contract PoolingManager is
 
         IERC20(_underlying).approve(_bridge, type(uint256).max);
         emit StrategyRegistered(_strategy, newStrategyInfo);
-    }
-
-    function resendMessageToL2() public payable onlyRole(0) {
-        uint256 lastHash = reportL1Hashes[reportL1Hashes.length];
-        (
-            uint256 lowStrategyReportL1Hash,
-            uint256 highStrategyReportL1Hash
-        ) = u256(lastHash);
-        uint256[] memory data = new uint256[](2);
-        data[0] = lowStrategyReportL1Hash;
-        data[1] = highStrategyReportL1Hash;
-        _sendMessageToL2(
-            l2PoolingManager,
-            L2_HANDLER_SELECTOR,
-            data,
-            msg.value
-        );
-        emit MessageResentToL2();
     }
 
     function cancelDepositRequestBridge(
@@ -259,6 +245,14 @@ contract PoolingManager is
         );
     }
 
+    function pause() external onlyRole(RELAYER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(0) {
+        _unpause();
+    }
+
     function executePendingRequests() public onlyRole(RELAYER_ROLE) {
         uint256[] memory indicesToDelete = new uint256[](
             pendingRequests.length
@@ -291,13 +285,19 @@ contract PoolingManager is
     }
 
     function handleReport(
+        uint256 epoch,
         BridgeInteractionInfo[] memory bridgeWithdrawInfo,
         StrategyReportL2[] memory strategyReportL2,
         BridgeInteractionInfo[] memory bridgeDepositInfo,
         uint256 l2BridgeEthFee,
         uint256 l2MessagingEthFee
-    ) public payable onlyRole(RELAYER_ROLE) {
-        verifyCallData(bridgeWithdrawInfo, strategyReportL2, bridgeDepositInfo);
+    ) public payable onlyRole(RELAYER_ROLE) whenNotPaused {
+        verifyCallData(
+            epoch,
+            bridgeWithdrawInfo,
+            strategyReportL2,
+            bridgeDepositInfo
+        );
         withdrawFromBridges(bridgeWithdrawInfo);
         (
             StrategyReportL1[] memory strategyReportL1,
@@ -305,30 +305,33 @@ contract PoolingManager is
         ) = handleMassReport(strategyReportL2, bridgeDepositInfo);
 
         // Is this necessary ? should revert if not good ampunt in any case (expect if random send eth to this contract but might not have any impact)
-        if (
-            msg.value !=
-            l2MessagingEthFee + (newBridgeDepositInfo.length * l2BridgeEthFee)
-        ) revert ErrorLib.InvalidEthAmount();
+        //if (
+        //    msg.value !=
+        //    l2MessagingEthFee + (newBridgeDepositInfo.length * l2BridgeEthFee)
+        //) revert ErrorLib.InvalidEthAmount();
 
         depositToBridges(newBridgeDepositInfo, l2BridgeEthFee, true);
-        uint256 epoch = reportL1Hashes.length + 1;
-        uint256 strategyReportL1Hash = hashFromReportL1(
-            epoch,
-            strategyReportL1
-        );
-        reportL1Hashes.push(strategyReportL1Hash);
+
+        uint256 strategyReportL1Hash = hashFromReportL1(strategyReportL1);
+
+        (uint256 lowEpoch, uint256 highEpoch) = u256(epoch);
+
         (
             uint256 lowStrategyReportL1Hash,
             uint256 highStrategyReportL1Hash
         ) = u256(strategyReportL1Hash);
-        uint256[] memory data = new uint256[](2);
-        data[0] = lowStrategyReportL1Hash;
-        data[1] = highStrategyReportL1Hash;
+
+        uint256[] memory data = new uint256[](4);
+        data[0] = lowEpoch;
+        data[1] = highEpoch;
+        data[2] = lowStrategyReportL1Hash;
+        data[3] = highStrategyReportL1Hash;
+
         _sendMessageToL2(
             l2PoolingManager,
             L2_HANDLER_SELECTOR,
             data,
-            msg.value
+            l2MessagingEthFee
         );
         emit ReportHandled(epoch, strategyReportL1);
     }
@@ -343,18 +346,19 @@ contract PoolingManager is
     }
 
     function verifyCallData(
+        uint256 epoch,
         BridgeInteractionInfo[] memory bridgeWithdrawInfo,
         StrategyReportL2[] memory strategyReportL2,
         BridgeInteractionInfo[] memory bridgeDepositInfo
     ) internal {
-        uint256 hash_from_calldata = hashFromCalldata(
+        uint256 hash_from_calldata = hashFromReportL2(
+            epoch,
             bridgeWithdrawInfo,
             strategyReportL2,
             bridgeDepositInfo
         );
         (uint256 lowHash, uint256 highHash) = u256(hash_from_calldata);
         uint256[] memory data = new uint256[](2);
-
         data[0] = lowHash;
         data[1] = highHash;
         _consumeL2Message(l2PoolingManager, data);
