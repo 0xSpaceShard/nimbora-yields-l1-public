@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import {IChainlinkAggregator} from "../interfaces/IChainlinkAggregator.sol";
@@ -27,7 +28,7 @@ contract AAVECompatWstETHToETHPriceFeed is IChainlinkAggregator {
         return (wstETHToStETH * stETHToETH) / PRECISION;
     }
 
-    function decimals() external view override returns (uint8) {
+    function decimals() external pure override returns (uint8) {
         return (18);
     }
 
