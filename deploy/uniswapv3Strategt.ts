@@ -8,8 +8,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const { deploy, get } = deployments;
     const network: string = hre.network.name;
     const addresses = network == 'mainnet' ? networkAddresses['mainnet'] : networkAddresses['goerli'];
-    const minReceivedAmountFactor = "990000000000000000"
-    const fee = "3000"
+    const minReceivedAmountFactor = "999000000000000000"
+    const fee = "100"
     const uniswapV3StrategyDeployment = await deploy('UniswapV3Strategy', {
         from: deployer,
         log: true,

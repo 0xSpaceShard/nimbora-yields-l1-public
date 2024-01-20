@@ -8,11 +8,8 @@ async function main() {
     const balance0ETH = await ethers.provider.getBalance(deployer.address);
     console.log("User Address:", deployer.address);
     console.log("User Balance:", ethers.formatEther(balance0ETH));
-
-    const addresses = networkAddresses['goerli'];
-
+    const addresses = networkAddresses['mainnet'];
     const poolingManager = await ethers.getContractAt("PoolingManager", addresses.l1PoolingManager);
-
     try {
         console.log("Registering Uni strategt");
         await (poolingManager).registerStrategy(addresses.uniStrategy, addresses.weth, addresses.ethBridge);

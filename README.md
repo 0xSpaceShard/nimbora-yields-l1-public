@@ -95,7 +95,7 @@ You can build a new strategy building contract inheriting from StrategyBase.sol,
 
 ## Deploying pooling manager and adding new strategies
 
-1.Fill the scripts/config.ts with deployed pooling manager on L2 and deploy the l1 poolingManager using hardhat-deploy. Add this new deployed address in the config.ts
+1. Fill the scripts/config.ts with deployed pooling manager on L2 and deploy the l1 poolingManager using hardhat-deploy. Add this new deployed address in the config.ts
 
 2. (only for goerli): deploy mock contract for your strategy if it is not deployed on this network like it's done with saving dai(cc deploy/savingDai.ts). Or setup the environment of the strategy if it exists like uniswapV3 where you need to deploy a new pool and add liquidity  (cc scripts/deployUniPool.ts and scripts/initAndAddLiq.ts)
 
