@@ -195,6 +195,9 @@ contract PoolingManager is
         if (IStrategyBase(_strategy).poolingManager() != address(this))
             revert ErrorLib.InvalidPoolingManager();
 
+        if (IStrategyBase(_strategy).underlyingToken() != _underlying)
+            revert ErrorLib.InvalidUnderlyingToken();
+
         StrategyInfo memory newStrategyInfo = StrategyInfo({
             underlying: _underlying,
             bridge: _bridge
@@ -202,6 +205,10 @@ contract PoolingManager is
         strategyInfo[_strategy] = newStrategyInfo;
 
         IERC20(_underlying).approve(_bridge, type(uint256).max);
+        IERC20(_underlying).approve(
+            IStrategyBase(_strategy).addressToApprove(),
+            type(uint256).max
+        );
         emit StrategyRegistered(_strategy, newStrategyInfo);
     }
 
@@ -267,22 +274,42 @@ contract PoolingManager is
         uint256 indicesToDeleteLength = 0;
         for (uint256 index = 0; index < pendingRequests.length; index++) {
             StrategyReportL2 memory currentReport = pendingRequests[index];
-            try
-                IStrategyBase(currentReport.l1Strategy).handleReport(
-                    currentReport.actionId,
-                    currentReport.amount
-                )
-            returns (uint256 l1Nav, uint256 amount) {
-                indicesToDelete[indicesToDeleteLength] = index;
-                indicesToDeleteLength++;
-                pendingRequestsExecuted.push(
-                    StrategyReportL1({
-                        l1Strategy: currentReport.l1Strategy,
-                        l1Nav: l1Nav,
-                        amount: amount
-                    })
-                );
-            } catch {}
+            if (currentReport.actionId == 0) {
+                (address target, bytes memory depositCalldata) = IStrategyBase(
+                    currentReport.l1Strategy
+                ).getDepositCalldata(currentReport.amount);
+                (bool success, ) = target.call(depositCalldata);
+                if (success) {
+                    uint256 l1Nav = IStrategyBase(currentReport.l1Strategy)
+                        .nav();
+
+                    indicesToDelete[indicesToDeleteLength] = index;
+                    indicesToDeleteLength++;
+                    pendingRequestsExecuted.push(
+                        StrategyReportL1({
+                            l1Strategy: currentReport.l1Strategy,
+                            l1Nav: l1Nav,
+                            amount: 0
+                        })
+                    );
+                }
+            } else {
+                try
+                    IStrategyBase(currentReport.l1Strategy).withdraw(
+                        currentReport.amount
+                    )
+                returns (uint256 l1Nav, uint256 amount) {
+                    indicesToDelete[indicesToDeleteLength] = index;
+                    indicesToDeleteLength++;
+                    pendingRequestsExecuted.push(
+                        StrategyReportL1({
+                            l1Strategy: currentReport.l1Strategy,
+                            l1Nav: l1Nav,
+                            amount: amount
+                        })
+                    );
+                } catch {}
+            }
         }
 
         for (uint256 i = indicesToDeleteLength; i > 0; i--) {
@@ -499,43 +526,78 @@ contract PoolingManager is
             ];
 
             if (currentReport.actionId == 0) {
-                IERC20(currentStrategyInfo.underlying).transfer(
-                    currentReport.l1Strategy,
-                    currentReport.amount
-                );
-            }
-
-            try
-                IStrategyBase(currentReport.l1Strategy).handleReport(
-                    currentReport.actionId,
-                    currentReport.amount
-                )
-            returns (uint256 l1Nav, uint256 amount) {
-                strategyReportL1[strategyReportL1Length] = StrategyReportL1({
-                    l1Strategy: currentReport.l1Strategy,
-                    l1Nav: l1Nav,
-                    amount: amount
-                });
-                if (
-                    currentReport.actionId == 2 &&
-                    amount != currentReport.amount
-                ) {
+                (address target, bytes memory depositCalldata) = IStrategyBase(
+                    currentReport.l1Strategy
+                ).getDepositCalldata(currentReport.amount);
+                (bool success, ) = target.call(depositCalldata);
+                if (success) {
+                    uint256 l1Nav = IStrategyBase(currentReport.l1Strategy)
+                        .nav();
+                    strategyReportL1[
+                        strategyReportL1Length
+                    ] = StrategyReportL1({
+                        l1Strategy: currentReport.l1Strategy,
+                        l1Nav: l1Nav,
+                        amount: 0
+                    });
+                    strategyReportL1Length++;
+                } else {
+                    pendingRequests.push(currentReport);
                     tempBridgeLoss[
                         tempBridgeLossLength
                     ] = BridgeInteractionInfo({
                         bridge: currentStrategyInfo.bridge,
-                        amount: currentReport.amount - amount
+                        amount: currentReport.amount
                     });
                     tempBridgeLossLength++;
                 }
-                strategyReportL1Length++;
-            } catch {
-                pendingRequests.push(currentReport);
-                tempBridgeLoss[tempBridgeLossLength] = BridgeInteractionInfo({
-                    bridge: currentStrategyInfo.bridge,
-                    amount: currentReport.amount
-                });
-                tempBridgeLossLength++;
+            } else {
+                if (currentReport.actionId == 2) {
+                    try
+                        IStrategyBase(currentReport.l1Strategy).withdraw(
+                            currentReport.amount
+                        )
+                    returns (uint256 l1Nav, uint256 amount) {
+                        strategyReportL1[
+                            strategyReportL1Length
+                        ] = StrategyReportL1({
+                            l1Strategy: currentReport.l1Strategy,
+                            l1Nav: l1Nav,
+                            amount: amount
+                        });
+
+                        if (amount != currentReport.amount) {
+                            tempBridgeLoss[
+                                tempBridgeLossLength
+                            ] = BridgeInteractionInfo({
+                                bridge: currentStrategyInfo.bridge,
+                                amount: currentReport.amount - amount
+                            });
+                            tempBridgeLossLength++;
+                        }
+                        strategyReportL1Length++;
+                    } catch {
+                        pendingRequests.push(currentReport);
+                        tempBridgeLoss[
+                            tempBridgeLossLength
+                        ] = BridgeInteractionInfo({
+                            bridge: currentStrategyInfo.bridge,
+                            amount: currentReport.amount
+                        });
+                        tempBridgeLossLength++;
+                    }
+                } else {
+                    uint256 l1Nav = IStrategyBase(currentReport.l1Strategy)
+                        .nav();
+                    strategyReportL1[
+                        strategyReportL1Length
+                    ] = StrategyReportL1({
+                        l1Strategy: currentReport.l1Strategy,
+                        l1Nav: l1Nav,
+                        amount: 0
+                    });
+                    strategyReportL1Length++;
+                }
             }
         }
 

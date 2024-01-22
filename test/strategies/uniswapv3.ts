@@ -60,6 +60,7 @@ describe("Strategy UniswapV3 Test", function () {
         await yieldToken.mint(uniswapRouterMockAddress, ethers.parseUnits('100', 'ether'));
         await underlyingToken.mint(uniswapRouterMockAddress, ethers.parseUnits('100', 'ether'));
 
+        await poolingManager.initAllowance(uniswapV3StrategyAddress, underlyingTokenAddress);
 
         return { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, mockV3Aggregator, mockV3AggregatorAddress, uniswapRouterMock, uniswapRouterMockAddress, uniswapV3Strategy, uniswapV3StrategyAddress };
     }
@@ -71,7 +72,7 @@ describe("Strategy UniswapV3 Test", function () {
         expect(await uniswapV3Strategy.pricefeedPrecision()).equal("1000000000000000000");
         expect(await uniswapV3Strategy.minReceivedAmountFactor()).equal("990000000000000000");
         expect(await uniswapV3Strategy.poolFee()).equal("3000");
-        expect(await underlyingToken.allowance(uniswapV3StrategyAddress, uniswapRouterMockAddress)).equal(maxUint256);
+        expect(await underlyingToken.allowance(poolingManagerAddress, uniswapRouterMockAddress)).equal(maxUint256);
         expect(await yieldToken.allowance(uniswapV3StrategyAddress, uniswapRouterMockAddress)).equal(maxUint256);
     });
 
@@ -153,11 +154,21 @@ describe("Strategy UniswapV3 Test", function () {
         expect(amountOutMinimum).equal(expectedAmount);
     });
 
-    it("test handle report 0 deposit ", async function () {
+    it("test getDepositCalldata ", async function () {
+        const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, mockV3Aggregator, mockV3AggregatorAddress, uniswapRouterMock, uniswapRouterMockAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await loadFixture();
+        const amount = ethers.parseUnits('10', 'ether');
+        const calldata = await uniswapV3Strategy.getDepositCalldata(amount);
+        expect(calldata[0]).equal(uniswapRouterMockAddress);
+        // expect(calldata[1]).equal("0x8cf51451000000000000000000000000a62835d1a6bf5f521c4e2746e1f51c923b8f34830000000000000000000000008e45c0936fa1a65bdad3222befec6a03c83372ce0000000000000000000000000000000000000000000000000000000000000bb8000000000000000000000000d753c12650c280383ce873cc3a898f6f53973d160000000000000000000000000000000000000000000000000000000065ae952a0000000000000000000000000000000000000000000000008ac7230489e80000000000000000000000000000000000000000000000000000727de34a24f8ffff0000000000000000000000000000000000000000000000000000000000000000");
+    });
+
+
+
+    it("test action depost ", async function () {
         const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, mockV3Aggregator, mockV3AggregatorAddress, uniswapRouterMock, uniswapRouterMockAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await loadFixture();
         const underlyingAmount = ethers.parseUnits('10', 'ether');
-        underlyingToken.transfer(uniswapV3StrategyAddress, underlyingAmount);
-        await poolingManager.handleReport(uniswapV3StrategyAddress, '0', underlyingAmount);
+        underlyingToken.transfer(poolingManagerAddress, underlyingAmount);
+        await poolingManager.deposit(uniswapV3StrategyAddress, underlyingAmount);
 
         const lastNav = await poolingManager.lastNav();
         const lastWithdrawalAmount = await poolingManager.lastWithdrawalAmount();
@@ -174,45 +185,39 @@ describe("Strategy UniswapV3 Test", function () {
         expect(lastWithdrawalAmount).to.equal(0);
     });
 
-    it("test handle report 0 deposit revert Insufficient output amount ", async function () {
+    it("test action deposit not pass ", async function () {
         const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, mockV3Aggregator, mockV3AggregatorAddress, uniswapRouterMock, uniswapRouterMockAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await loadFixture();
         const underlyingAmount = ethers.parseUnits('10', 'ether');
-        mockV3Aggregator.updateAnswer("1000000000000000000");
-        underlyingToken.transfer(uniswapV3StrategyAddress, underlyingAmount);
-        await expect(poolingManager.handleReport(uniswapV3StrategyAddress, '0', underlyingAmount)).to.be.revertedWith("Insufficient output amount")
-    });
-
-    it("test handle report 1 report ", async function () {
-        const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, mockV3Aggregator, mockV3AggregatorAddress, uniswapRouterMock, uniswapRouterMockAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await loadFixture();
-        const underlyingAmount = ethers.parseUnits('10', 'ether');
-        underlyingToken.transfer(uniswapV3StrategyAddress, underlyingAmount);
-        await poolingManager.handleReport(uniswapV3StrategyAddress, '0', underlyingAmount);
-        yieldToken.transfer(uniswapV3StrategyAddress, underlyingAmount);
-        await poolingManager.handleReport(uniswapV3StrategyAddress, '1', 0);
+        await mockV3Aggregator.updateAnswer("1000000000000000000");
+        await underlyingToken.transfer(poolingManager, underlyingAmount);
+        await poolingManager.deposit(uniswapV3StrategyAddress, underlyingAmount)
 
         const lastNav = await poolingManager.lastNav();
         const lastWithdrawalAmount = await poolingManager.lastWithdrawalAmount();
         const nav = await uniswapV3Strategy.nav();
 
-        const expectedBalance = "18333333333333333330"
+        const expectedBalance = "0"
         const yieldBalance = await yieldToken.balanceOf(uniswapV3StrategyAddress);
         expect(yieldBalance).to.equal(expectedBalance);
 
-        const expectedNav = "21999999999999999996"
+        const expectedNav = "0"
+        const expectedRevert = "123467890"
 
-        expect(lastNav).to.equal(expectedNav);
-        expect(lastNav).to.equal(nav);
-        expect(lastWithdrawalAmount).to.equal(0);
+        expect(expectedNav).to.equal(nav);
+        expect(lastWithdrawalAmount).to.equal(expectedRevert);
+        expect(lastNav).to.equal(expectedRevert);
     });
 
-    it("test handle report 2 withdraw amountInMaximum below yield balance", async function () {
+
+
+    it("test action withdraw", async function () {
         const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, mockV3Aggregator, mockV3AggregatorAddress, uniswapRouterMock, uniswapRouterMockAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await loadFixture();
 
         const yieldAmount = ethers.parseUnits('10', 'ether');
         yieldToken.transfer(uniswapV3StrategyAddress, yieldAmount);
 
         const withdrawalAmount = ethers.parseUnits('6', 'ether');
-        await poolingManager.handleReport(uniswapV3StrategyAddress, '2', withdrawalAmount);
+        await poolingManager.withdraw(uniswapV3StrategyAddress, withdrawalAmount);
 
         const lastNav = await poolingManager.lastNav();
         const lastWithdrawalAmount = await poolingManager.lastWithdrawalAmount();
@@ -229,22 +234,22 @@ describe("Strategy UniswapV3 Test", function () {
 
     });
 
-    it("test handle report 2 withdraw amountInMaximum below yield balance revert slippage", async function () {
+    it("test action withdraw revert slippage", async function () {
         const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, mockV3Aggregator, mockV3AggregatorAddress, uniswapRouterMock, uniswapRouterMockAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await loadFixture();
-        mockV3Aggregator.updateAnswer("2000000000000000000");
+        await mockV3Aggregator.updateAnswer("2000000000000000000");
         const yieldAmount = ethers.parseUnits('10', 'ether');
-        yieldToken.transfer(uniswapV3StrategyAddress, yieldAmount);
+        await yieldToken.transfer(uniswapV3StrategyAddress, yieldAmount);
         const withdrawalAmount = ethers.parseUnits('6', 'ether');
-        await expect(poolingManager.handleReport(uniswapV3StrategyAddress, '2', withdrawalAmount)).to.be.revertedWith("Excessive input amount")
+        await expect(poolingManager.withdraw(uniswapV3StrategyAddress, withdrawalAmount)).to.be.revertedWith("Excessive input amount")
     });
 
-    it("test handle report 2 withdraw amountInMaximum above yield balance", async function () {
+    it("test action withdraw amountInMaximum above yield balance", async function () {
         const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, mockV3Aggregator, mockV3AggregatorAddress, uniswapRouterMock, uniswapRouterMockAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await loadFixture();
         const yieldAmount = ethers.parseUnits('5', 'ether');
         yieldToken.transfer(uniswapV3StrategyAddress, yieldAmount);
 
         const withdrawalAmount = ethers.parseUnits('10', 'ether');
-        await poolingManager.handleReport(uniswapV3StrategyAddress, '2', withdrawalAmount);
+        await poolingManager.withdraw(uniswapV3StrategyAddress, withdrawalAmount);
 
         const lastNav = await poolingManager.lastNav();
         const lastWithdrawalAmount = await poolingManager.lastWithdrawalAmount();
@@ -261,10 +266,10 @@ describe("Strategy UniswapV3 Test", function () {
     it("test handle report 2 withdraw amountInMaximum above yield balance revert slippage", async function () {
         const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, mockV3Aggregator, mockV3AggregatorAddress, uniswapRouterMock, uniswapRouterMockAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await loadFixture();
         const yieldAmount = ethers.parseUnits('5', 'ether');
-        yieldToken.transfer(uniswapV3StrategyAddress, yieldAmount);
+        await yieldToken.transfer(uniswapV3StrategyAddress, yieldAmount);
         const withdrawalAmount = ethers.parseUnits('10', 'ether');
-        mockV3Aggregator.updateAnswer("2000000000000000000");
-        await expect(poolingManager.handleReport(uniswapV3StrategyAddress, '2', withdrawalAmount)).to.be.revertedWith("Insufficient output amount")
+        await mockV3Aggregator.updateAnswer("2000000000000000000");
+        await expect(poolingManager.withdraw(uniswapV3StrategyAddress, withdrawalAmount)).to.be.revertedWith("Insufficient output amount")
     });
 
 });

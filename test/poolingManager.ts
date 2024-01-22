@@ -175,7 +175,7 @@ describe("Pooling Manager Test", function () {
         return { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, sdai, sdaiAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress };
     }
 
-    async function InitUniswap(ownerAddress: string, poolingManagerAddress: string, weth: WETH9, wethAddress: string, wsteth: ERC20Mock, wstethAddress: string) {
+    async function InitUniswap(poolingManagerAddress: string, weth: WETH9, wethAddress: string, wsteth: ERC20Mock, wstethAddress: string) {
 
         const uniswapV3FactoryMockFactory = await ethers.getContractFactory('UniswapV3FactoryMock');
         const uniswapV3FactoryMock = await uniswapV3FactoryMockFactory.deploy();
@@ -217,7 +217,7 @@ describe("Pooling Manager Test", function () {
         await weth.transfer(uniswapRouterMockAddress, ethers.parseUnits('5', 'ether'));
 
 
-        return { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress };
+        return { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress, uniswapRouterMockAddress };
     }
 
     async function InitSavingDai(poolingManagerAddress: string, daiAddress: string, sdaiAddress: string) {
@@ -300,33 +300,35 @@ describe("Pooling Manager Test", function () {
 
     it("test registerStrategy revert zero value strategy", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress, uniswapRouterMockAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
         await expect(poolingManager.registerStrategy(zeroAddress, wethAddress, ethBridgeAddress)).to.be.revertedWithCustomError(poolingManager, "ZeroAddress");
     });
 
     it("test registerStrategy revert zero value underlying", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress, uniswapRouterMockAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
         await expect(poolingManager.registerStrategy(uniswapV3StrategyAddress, zeroAddress, ethBridgeAddress)).to.be.revertedWithCustomError(poolingManager, "ZeroAddress");
     });
 
     it("test registerStrategy revert zero value bridge", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
         await expect(poolingManager.registerStrategy(uniswapV3StrategyAddress, wethAddress, zeroAddress)).to.be.revertedWithCustomError(poolingManager, "ZeroAddress");
     });
 
     it("test registerStrategy revert InvalidPoolingManager", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, Wallet.createRandom().address, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(Wallet.createRandom().address, weth, wethAddress, wsteth, wstethAddress);
         await expect(poolingManager.registerStrategy(uniswapV3StrategyAddress, wethAddress, ethBridgeAddress)).to.be.revertedWithCustomError(poolingManager, "InvalidPoolingManager");
     });
 
     it("test registerStrategy", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, sdai, sdaiAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress, uniswapRouterMockAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
         await poolingManager.registerStrategy(uniswapV3StrategyAddress, wethAddress, ethBridgeAddress);
         expect((await weth.allowance(poolingManagerAddress, ethBridgeAddress))).to.be.equal(maxUint256);
+        expect((await weth.allowance(poolingManagerAddress, uniswapRouterMockAddress))).to.be.equal(maxUint256);
+
         const strategyInfoUni = await poolingManager.strategyInfo(uniswapV3StrategyAddress);
         expect(strategyInfoUni.underlying).to.be.equal(weth);
         expect(strategyInfoUni.bridge).to.be.equal(ethBridgeAddress);
@@ -334,6 +336,7 @@ describe("Pooling Manager Test", function () {
         const { savingDaiStrategy, savingDaiStrategyAddress } = await InitSavingDai(poolingManagerAddress, daiAddress, sdaiAddress);
         await poolingManager.registerStrategy(savingDaiStrategyAddress, daiAddress, daiBridgeAddress);
         expect((await dai.allowance(poolingManagerAddress, daiBridgeAddress))).to.be.equal(maxUint256);
+        expect((await dai.allowance(poolingManagerAddress, sdaiAddress))).to.be.equal(maxUint256);
         const strategyInfoSdai = await poolingManager.strategyInfo(savingDaiStrategyAddress);
         expect(strategyInfoSdai.underlying).to.be.equal(daiAddress);
         expect(strategyInfoSdai.bridge).to.be.equal(daiBridgeAddress);
@@ -341,7 +344,7 @@ describe("Pooling Manager Test", function () {
 
     it("test handleReport revert invalid message to consume", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, sdai, sdaiAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
         await poolingManager.registerStrategy(uniswapV3StrategyAddress, wethAddress, ethBridgeAddress);
         let epoch = "0";
         const depositAmount = ethers.parseUnits('1', 'ether');
@@ -364,7 +367,7 @@ describe("Pooling Manager Test", function () {
 
     it("test handleReport one strategy with deposit order, no revert, no pending", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, sdai, sdaiAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
         await poolingManager.registerStrategy(uniswapV3StrategyAddress, wethAddress, ethBridgeAddress);
         let epoch = "1";
         const depositAmount = ethers.parseUnits('1', 'ether');
@@ -401,7 +404,7 @@ describe("Pooling Manager Test", function () {
 
     it("test handleReport one strategy with report order, no revert, no pending", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, sdai, sdaiAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
         await poolingManager.registerStrategy(uniswapV3StrategyAddress, wethAddress, ethBridgeAddress);
         wsteth.transfer(uniswapV3StrategyAddress, "833333333333333333")
         let epoch = "1";
@@ -437,7 +440,7 @@ describe("Pooling Manager Test", function () {
 
     it("test handleReport one strategy with withdraw order, no revert, no pending", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, sdai, sdaiAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
         await poolingManager.registerStrategy(uniswapV3StrategyAddress, wethAddress, ethBridgeAddress);
         wsteth.transfer(uniswapV3StrategyAddress, "833333333333333333")
         let epoch = "1";
@@ -478,7 +481,7 @@ describe("Pooling Manager Test", function () {
 
     it("test handleReport one strategy with too high withdraw order, no revert, no pending", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, sdai, sdaiAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
         await poolingManager.registerStrategy(uniswapV3StrategyAddress, wethAddress, ethBridgeAddress);
         wsteth.transfer(uniswapV3StrategyAddress, "833333333333333333")
         let epoch = "1";
@@ -518,7 +521,7 @@ describe("Pooling Manager Test", function () {
 
     it("test handleReport one strategy with deposit order, revert, no pending", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, sdai, sdaiAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
         await poolingManager.registerStrategy(uniswapV3StrategyAddress, wethAddress, ethBridgeAddress);
 
         // Previous Price of one Wsteth: 1.2 WETH, now update to 1 WETH but amm still trading at 1.2WETH
@@ -542,7 +545,7 @@ describe("Pooling Manager Test", function () {
 
     it("test handleReport two strategy with deposit order, revert, no pending", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, sdai, sdaiAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
         const { savingDaiStrategy, savingDaiStrategyAddress } = await InitSavingDai(poolingManagerAddress, daiAddress, sdaiAddress);
 
         await poolingManager.registerStrategy(uniswapV3StrategyAddress, wethAddress, ethBridgeAddress);
@@ -572,7 +575,7 @@ describe("Pooling Manager Test", function () {
 
     it("test handleReport two strategy with deposit order, one revert and go to pending, no pending", async function () {
         const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, sdai, sdaiAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
-        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(owner.address, poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
         const { savingDaiStrategy, savingDaiStrategyAddress } = await InitSavingDai(poolingManagerAddress, daiAddress, sdaiAddress);
 
         await poolingManager.registerStrategy(uniswapV3StrategyAddress, wethAddress, ethBridgeAddress);

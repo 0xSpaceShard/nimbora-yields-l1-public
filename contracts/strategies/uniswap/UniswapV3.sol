@@ -43,6 +43,10 @@ contract UniswapV3Strategy is StrategyBase {
         _checkDecimals(_underlyingToken, _yieldToken);
     }
 
+    function addressToApprove() public view override returns (address) {
+        return (address(uniswapRouter));
+    }
+
     function setMinReceivedAmountFactor(
         uint256 _minReceivedAmountFactor
     ) public {
@@ -89,12 +93,6 @@ contract UniswapV3Strategy is StrategyBase {
         );
         require(poolAddress != address(0), "Pool does not exist");
         poolFee = _poolFee;
-
-        IERC20(_underlyingToken).approve(
-            _uniswapRouterAddress,
-            type(uint256).max
-        );
-
         IERC20(_yieldToken).approve(_uniswapRouterAddress, type(uint256).max);
     }
 
@@ -126,7 +124,14 @@ contract UniswapV3Strategy is StrategyBase {
         ) revert ErrorLib.InvalidDecimals();
     }
 
-    function _deposit(uint256 amount) internal override {
+    function getDepositCalldata(
+        uint256 amount
+    )
+        public
+        view
+        override
+        returns (address target, bytes memory depositCalldata)
+    {
         uint256 yieldAmount = _underlyingToYield(amount);
         uint256 amountOutMinimum = _applySlippageDepositExactInputSingle(
             yieldAmount
@@ -142,14 +147,17 @@ contract UniswapV3Strategy is StrategyBase {
                 amountOutMinimum: amountOutMinimum,
                 sqrtPriceLimitX96: 0
             });
-
-        uniswapRouter.exactInputSingle(params);
+        depositCalldata = abi.encodeWithSignature(
+            "exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))",
+            params
+        );
+        target = address(uniswapRouter);
     }
 
     function _withdraw(uint256 amount) internal override returns (uint256) {
-        uint256 chainlinkLatestAnswer = uint256(_chainlinkLatestAnswer());
+        uint256 latestAnswer = uint256(_chainlinkLatestAnswer());
         uint256 yieldAmount = _calculateUnderlyingToYieldAmount(
-            chainlinkLatestAnswer,
+            latestAnswer,
             amount
         );
         uint256 amountInMaximum = _applySlippageWithdrawExactOutputSingle(
@@ -159,7 +167,7 @@ contract UniswapV3Strategy is StrategyBase {
 
         if (amountInMaximum > yieldBalance) {
             uint256 underlyingAmount = _calculateYieldToUnderlyingAmount(
-                chainlinkLatestAnswer,
+                latestAnswer,
                 yieldBalance
             );
             uint256 amountOutMinimum = _applySlippageDepositExactInputSingle(
