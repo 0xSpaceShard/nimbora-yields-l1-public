@@ -1,0 +1,25 @@
+name: test
+on:
+    pull_request:
+        branches:
+            - main
+            - develop
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Setup node 20
+              uses: actions/setup-node@v2
+              with:
+                  node-version: 20.x
+
+            - name: Setup envs
+              run: cp .env.example .env
+
+            - name: Compile contracts
+              run: yarn compile
+
+            - name: Testing
+              run: yarn test
