@@ -3,10 +3,7 @@ pragma solidity ^0.8.20;
 
 interface IStarknetMessaging {
     /// @notice Consumes a message that was sent from an L2 contract. Returns the hash of the message.
-    function consumeMessageFromL2(
-        uint256 fromAddress,
-        uint256[] calldata payload
-    ) external returns (bytes32);
+    function consumeMessageFromL2(uint256 fromAddress, uint256[] calldata payload) external returns (bytes32);
 
     /// @notice Execute a function call on L2
     function sendMessageToL2(

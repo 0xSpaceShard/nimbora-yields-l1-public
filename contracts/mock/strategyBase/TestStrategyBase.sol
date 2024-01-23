@@ -20,11 +20,7 @@ contract TestStrategyBase is StrategyBase {
         address _yieldTokenAddress,
         uint256 yieldFactor
     ) public virtual initializer {
-        initializeStrategyBase(
-            _poolingManager,
-            _underlyingTokenAddress,
-            _yieldTokenAddress
-        );
+        initializeStrategyBase(_poolingManager, _underlyingTokenAddress, _yieldTokenAddress);
         _yieldFactor = yieldFactor;
     }
 
@@ -47,15 +43,11 @@ contract TestStrategyBase is StrategyBase {
         return amount;
     }
 
-    function _yieldToUnderlying(
-        uint256 amount
-    ) internal view override returns (uint256) {
+    function _yieldToUnderlying(uint256 amount) internal view override returns (uint256) {
         return (amount * PRECISION) / _yieldFactor;
     }
 
-    function _underlyingToYield(
-        uint256 amount
-    ) internal view override returns (uint256) {
+    function _underlyingToYield(uint256 amount) internal view override returns (uint256) {
         return (amount * _yieldFactor) / PRECISION;
     }
 }

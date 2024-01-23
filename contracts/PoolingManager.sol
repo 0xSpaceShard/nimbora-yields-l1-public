@@ -30,25 +30,12 @@ contract PoolingManager is
 
     event PendingRequestsExecuted(uint256[] indices);
     event MessageResentToL2();
-    event BridgeCancelDepositRequestClaimedAndDeposited(
-        address l1BridgeAddress,
-        uint256 amount,
-        uint256 nonce
-    );
-    event CancelDepositRequestBridgeSent(
-        address l1BridgeAddress,
-        uint256 amount,
-        uint256 nonce
-    );
-    event ReportHandled(
-        uint256 epoch,
-        uint256 strategyReportL1Length,
-        StrategyReportL1[] strategyReportL1
-    );
+    event BridgeCancelDepositRequestClaimedAndDeposited(address l1BridgeAddress, uint256 amount, uint256 nonce);
+    event CancelDepositRequestBridgeSent(address l1BridgeAddress, uint256 amount, uint256 nonce);
+    event ReportHandled(uint256 epoch, uint256 strategyReportL1Length, StrategyReportL1[] strategyReportL1);
     event StrategyRegistered(address strategy, StrategyInfo strategyInfo);
 
-    uint256 public constant L2_HANDLER_SELECTOR =
-        0x10e13e50cb99b6b3c8270ec6e16acfccbe1164a629d74b43549567a77593aff;
+    uint256 public constant L2_HANDLER_SELECTOR = 0x10e13e50cb99b6b3c8270ec6e16acfccbe1164a629d74b43549567a77593aff;
     bytes32 public constant RELAYER_ROLE = keccak256("0x01");
 
     /**
@@ -147,31 +134,13 @@ contract PoolingManager is
         BridgeInteractionInfo[] memory bridgeDepositInfo
     ) public view returns (uint256) {
         uint256 acc = 0;
-        for (
-            uint256 index1 = 0;
-            index1 < pendingRequestsExecuted.length;
-            index1++
-        ) {
-            StrategyReportL1
-                memory pendingRequestsExecutedElem = pendingRequestsExecuted[
-                    index1
-                ];
+        for (uint256 index1 = 0; index1 < pendingRequestsExecuted.length; index1++) {
+            StrategyReportL1 memory pendingRequestsExecutedElem = pendingRequestsExecuted[index1];
             if (pendingRequestsExecutedElem.amount > 0) {
                 bool found = false;
-                for (
-                    uint256 index2 = 0;
-                    index2 < bridgeDepositInfo.length;
-                    index2++
-                ) {
-                    BridgeInteractionInfo
-                        memory bridgeDepositInfoElem = bridgeDepositInfo[
-                            index2
-                        ];
-                    if (
-                        bridgeDepositInfoElem.bridge ==
-                        strategyInfo[pendingRequestsExecutedElem.l1Strategy]
-                            .bridge
-                    ) {
+                for (uint256 index2 = 0; index2 < bridgeDepositInfo.length; index2++) {
+                    BridgeInteractionInfo memory bridgeDepositInfoElem = bridgeDepositInfo[index2];
+                    if (bridgeDepositInfoElem.bridge == strategyInfo[pendingRequestsExecutedElem.l1Strategy].bridge) {
                         found = true;
                     }
                 }
@@ -183,46 +152,27 @@ contract PoolingManager is
         return (bridgeDepositInfo.length + acc);
     }
 
-    function registerStrategy(
-        address _strategy,
-        address _underlying,
-        address _bridge
-    ) public payable onlyRole(0) {
+    function registerStrategy(address _strategy, address _underlying, address _bridge) public payable onlyRole(0) {
         if (_underlying == address(0)) revert ErrorLib.ZeroAddress();
         if (_bridge == address(0)) revert ErrorLib.ZeroAddress();
         if (_strategy == address(0)) revert ErrorLib.ZeroAddress();
 
-        if (IStrategyBase(_strategy).poolingManager() != address(this))
-            revert ErrorLib.InvalidPoolingManager();
+        if (IStrategyBase(_strategy).poolingManager() != address(this)) revert ErrorLib.InvalidPoolingManager();
 
-        StrategyInfo memory newStrategyInfo = StrategyInfo({
-            underlying: _underlying,
-            bridge: _bridge
-        });
+        StrategyInfo memory newStrategyInfo = StrategyInfo({underlying: _underlying, bridge: _bridge});
         strategyInfo[_strategy] = newStrategyInfo;
 
         IERC20(_underlying).approve(_bridge, type(uint256).max);
         emit StrategyRegistered(_strategy, newStrategyInfo);
     }
 
-    function setPoolingManager(
-        uint256 _l2PoolingManager
-    ) public payable onlyRole(0) {
+    function setPoolingManager(uint256 _l2PoolingManager) public payable onlyRole(0) {
         if (_l2PoolingManager == (0)) revert ErrorLib.ZeroAddress();
         l2PoolingManager = _l2PoolingManager;
     }
 
-    function cancelDepositRequestBridge(
-        address l1BridgeAddress,
-        uint256 amount,
-        uint256 nonce
-    ) public onlyRole(0) {
-        depositCancelRequestToBridgeToken(
-            l1BridgeAddress,
-            l2PoolingManager,
-            amount,
-            nonce
-        );
+    function cancelDepositRequestBridge(address l1BridgeAddress, uint256 amount, uint256 nonce) public onlyRole(0) {
+        depositCancelRequestToBridgeToken(l1BridgeAddress, l2PoolingManager, amount, nonce);
         emit CancelDepositRequestBridgeSent(l1BridgeAddress, amount, nonce);
     }
 
@@ -232,24 +182,11 @@ contract PoolingManager is
         uint256 nonce,
         uint256 l2BridgeEthFee
     ) public payable onlyRole(0) {
-        depositReclaimToBridgeToken(
-            l1BridgeAddress,
-            l2PoolingManager,
-            amount,
-            nonce
-        );
-        BridgeInteractionInfo[]
-            memory bridgeElemArray = new BridgeInteractionInfo[](1);
-        bridgeElemArray[0] = BridgeInteractionInfo({
-            bridge: l1BridgeAddress,
-            amount: amount
-        });
+        depositReclaimToBridgeToken(l1BridgeAddress, l2PoolingManager, amount, nonce);
+        BridgeInteractionInfo[] memory bridgeElemArray = new BridgeInteractionInfo[](1);
+        bridgeElemArray[0] = BridgeInteractionInfo({bridge: l1BridgeAddress, amount: amount});
         depositToBridges(bridgeElemArray, l2BridgeEthFee, false);
-        emit BridgeCancelDepositRequestClaimedAndDeposited(
-            l1BridgeAddress,
-            amount,
-            nonce
-        );
+        emit BridgeCancelDepositRequestClaimedAndDeposited(l1BridgeAddress, amount, nonce);
     }
 
     function pause() external onlyRole(RELAYER_ROLE) {
@@ -261,26 +198,17 @@ contract PoolingManager is
     }
 
     function executePendingRequests() public onlyRole(RELAYER_ROLE) {
-        uint256[] memory indicesToDelete = new uint256[](
-            pendingRequests.length
-        );
+        uint256[] memory indicesToDelete = new uint256[](pendingRequests.length);
         uint256 indicesToDeleteLength = 0;
         for (uint256 index = 0; index < pendingRequests.length; index++) {
             StrategyReportL2 memory currentReport = pendingRequests[index];
             try
-                IStrategyBase(currentReport.l1Strategy).handleReport(
-                    currentReport.actionId,
-                    currentReport.amount
-                )
+                IStrategyBase(currentReport.l1Strategy).handleReport(currentReport.actionId, currentReport.amount)
             returns (uint256 l1Nav, uint256 amount) {
                 indicesToDelete[indicesToDeleteLength] = index;
                 indicesToDeleteLength++;
                 pendingRequestsExecuted.push(
-                    StrategyReportL1({
-                        l1Strategy: currentReport.l1Strategy,
-                        l1Nav: l1Nav,
-                        amount: amount
-                    })
+                    StrategyReportL1({l1Strategy: currentReport.l1Strategy, l1Nav: l1Nav, amount: amount})
                 );
             } catch {}
         }
@@ -300,12 +228,7 @@ contract PoolingManager is
         uint256 l2MessagingEthFee,
         uint256 minSuccessCall
     ) public payable onlyRole(RELAYER_ROLE) whenNotPaused {
-        verifyCallData(
-            epoch,
-            bridgeWithdrawInfo,
-            strategyReportL2,
-            bridgeDepositInfo
-        );
+        verifyCallData(epoch, bridgeWithdrawInfo, strategyReportL2, bridgeDepositInfo);
         withdrawFromBridges(bridgeWithdrawInfo);
         (
             uint256 strategyReportL1Length,
@@ -314,26 +237,14 @@ contract PoolingManager is
         ) = handleMassReport(strategyReportL2, bridgeDepositInfo);
 
         if (strategyReportL1Length == 0) revert ErrorLib.NoL1Report();
-        if (minSuccessCall > strategyReportL1Length)
-            revert ErrorLib.NotEnoughSuccessCalls();
+        if (minSuccessCall > strategyReportL1Length) revert ErrorLib.NotEnoughSuccessCalls();
 
         depositToBridges(newBridgeDepositInfo, l2BridgeEthFee, true);
 
-        uint256 strategyReportL1Hash = hashFromReportL1(
-            strategyReportL1Length,
-            strategyReportL1
-        );
-        uint256[] memory data = getMessagePayloadData(
-            epoch,
-            strategyReportL1Hash
-        );
+        uint256 strategyReportL1Hash = hashFromReportL1(strategyReportL1Length, strategyReportL1);
+        uint256[] memory data = getMessagePayloadData(epoch, strategyReportL1Hash);
 
-        _sendMessageToL2(
-            l2PoolingManager,
-            L2_HANDLER_SELECTOR,
-            data,
-            l2MessagingEthFee
-        );
+        _sendMessageToL2(l2PoolingManager, L2_HANDLER_SELECTOR, data, l2MessagingEthFee);
 
         emit ReportHandled(epoch, strategyReportL1Length, strategyReportL1);
     }
@@ -343,10 +254,7 @@ contract PoolingManager is
         uint256 strategyReportL1Hash
     ) internal pure returns (uint256[] memory) {
         (uint256 lowEpoch, uint256 highEpoch) = u256(epoch);
-        (
-            uint256 lowStrategyReportL1Hash,
-            uint256 highStrategyReportL1Hash
-        ) = u256(strategyReportL1Hash);
+        (uint256 lowStrategyReportL1Hash, uint256 highStrategyReportL1Hash) = u256(strategyReportL1Hash);
 
         uint256[] memory data = new uint256[](4);
         data[0] = lowEpoch;
@@ -356,10 +264,7 @@ contract PoolingManager is
         return (data);
     }
 
-    function deleteElement(
-        StrategyReportL2[] storage array,
-        uint256 index
-    ) internal {
+    function deleteElement(StrategyReportL2[] storage array, uint256 index) internal {
         require(index < array.length, "Index out of bounds");
         array[index] = array[array.length - 1];
         array.pop();
@@ -371,12 +276,7 @@ contract PoolingManager is
         StrategyReportL2[] memory strategyReportL2,
         BridgeInteractionInfo[] memory bridgeDepositInfo
     ) internal {
-        uint256 hash_from_calldata = hashFromReportL2(
-            epoch,
-            bridgeWithdrawInfo,
-            strategyReportL2,
-            bridgeDepositInfo
-        );
+        uint256 hash_from_calldata = hashFromReportL2(epoch, bridgeWithdrawInfo, strategyReportL2, bridgeDepositInfo);
         (uint256 lowHash, uint256 highHash) = u256(hash_from_calldata);
         uint256[] memory data = new uint256[](2);
         data[0] = lowHash;
@@ -384,9 +284,7 @@ contract PoolingManager is
         _consumeL2Message(l2PoolingManager, data);
     }
 
-    function withdrawFromBridges(
-        BridgeInteractionInfo[] memory bridgeWithdrawalInfo
-    ) internal {
+    function withdrawFromBridges(BridgeInteractionInfo[] memory bridgeWithdrawalInfo) internal {
         for (uint256 index = 0; index < bridgeWithdrawalInfo.length; index++) {
             _withdrawTokenFromBridge(
                 bridgeWithdrawalInfo[index].bridge,
@@ -394,9 +292,7 @@ contract PoolingManager is
                 bridgeWithdrawalInfo[index].amount
             );
             if (bridgeWithdrawalInfo[index].bridge == ethBridge) {
-                IWETH(ethWrapped).deposit{
-                    value: bridgeWithdrawalInfo[index].amount
-                }();
+                IWETH(ethWrapped).deposit{value: bridgeWithdrawalInfo[index].amount}();
             }
         }
     }
@@ -407,13 +303,10 @@ contract PoolingManager is
         bool withdrawEth
     ) internal {
         for (uint256 index = 0; index < bridgeDepositInfo.length; index++) {
-            BridgeInteractionInfo
-                memory bridgeInteractionInfoElem = bridgeDepositInfo[index];
+            BridgeInteractionInfo memory bridgeInteractionInfoElem = bridgeDepositInfo[index];
             if (bridgeInteractionInfoElem.bridge == ethBridge) {
                 if (withdrawEth) {
-                    IWETH(ethWrapped).withdraw(
-                        bridgeInteractionInfoElem.amount
-                    );
+                    IWETH(ethWrapped).withdraw(bridgeInteractionInfoElem.amount);
                 }
                 depositToBridgeToken(
                     bridgeInteractionInfoElem.bridge,
@@ -435,14 +328,7 @@ contract PoolingManager is
     function handleMassReport(
         StrategyReportL2[] memory strategyReportL2,
         BridgeInteractionInfo[] memory bridgeDepositInfo
-    )
-        internal
-        returns (
-            uint256,
-            StrategyReportL1[] memory,
-            BridgeInteractionInfo[] memory
-        )
-    {
+    ) internal returns (uint256, StrategyReportL1[] memory, BridgeInteractionInfo[] memory) {
         (
             uint256 strategyReportL1Length,
             StrategyReportL1[] memory strategyReportL1,
@@ -450,14 +336,9 @@ contract PoolingManager is
             BridgeInteractionInfo[] memory tempBridgeLoss
         ) = processStrategyReports(strategyReportL2);
 
-        updateBridgeDepositInfo(
-            tempBridgeLossLength,
-            tempBridgeLoss,
-            bridgeDepositInfo
-        );
+        updateBridgeDepositInfo(tempBridgeLossLength, tempBridgeLoss, bridgeDepositInfo);
 
-        uint256 pendingRequestsExecutedLength = pendingRequestsExecuted.length -
-            pendingRequestsExecutedCounter;
+        uint256 pendingRequestsExecutedLength = pendingRequestsExecuted.length - pendingRequestsExecutedCounter;
 
         if (pendingRequestsExecutedLength > 0) {
             return
@@ -468,11 +349,7 @@ contract PoolingManager is
                     pendingRequestsExecutedLength
                 );
         } else {
-            return (
-                strategyReportL1Length,
-                strategyReportL1,
-                bridgeDepositInfo
-            );
+            return (strategyReportL1Length, strategyReportL1, bridgeDepositInfo);
         }
     }
 
@@ -488,41 +365,26 @@ contract PoolingManager is
         )
     {
         strategyReportL1 = new StrategyReportL1[](strategyReportL2.length);
-        tempBridgeLoss = new BridgeInteractionInfo[](
-            strategyReportL2.length + pendingRequestsExecuted.length
-        );
+        tempBridgeLoss = new BridgeInteractionInfo[](strategyReportL2.length + pendingRequestsExecuted.length);
 
         for (uint256 i = 0; i < strategyReportL2.length; i++) {
             StrategyReportL2 memory currentReport = strategyReportL2[i];
-            StrategyInfo memory currentStrategyInfo = strategyInfo[
-                currentReport.l1Strategy
-            ];
+            StrategyInfo memory currentStrategyInfo = strategyInfo[currentReport.l1Strategy];
 
             if (currentReport.actionId == 0) {
-                IERC20(currentStrategyInfo.underlying).transfer(
-                    currentReport.l1Strategy,
-                    currentReport.amount
-                );
+                IERC20(currentStrategyInfo.underlying).transfer(currentReport.l1Strategy, currentReport.amount);
             }
 
             try
-                IStrategyBase(currentReport.l1Strategy).handleReport(
-                    currentReport.actionId,
-                    currentReport.amount
-                )
+                IStrategyBase(currentReport.l1Strategy).handleReport(currentReport.actionId, currentReport.amount)
             returns (uint256 l1Nav, uint256 amount) {
                 strategyReportL1[strategyReportL1Length] = StrategyReportL1({
                     l1Strategy: currentReport.l1Strategy,
                     l1Nav: l1Nav,
                     amount: amount
                 });
-                if (
-                    currentReport.actionId == 2 &&
-                    amount != currentReport.amount
-                ) {
-                    tempBridgeLoss[
-                        tempBridgeLossLength
-                    ] = BridgeInteractionInfo({
+                if (currentReport.actionId == 2 && amount != currentReport.amount) {
+                    tempBridgeLoss[tempBridgeLossLength] = BridgeInteractionInfo({
                         bridge: currentStrategyInfo.bridge,
                         amount: currentReport.amount - amount
                     });
@@ -539,12 +401,7 @@ contract PoolingManager is
             }
         }
 
-        return (
-            strategyReportL1Length,
-            strategyReportL1,
-            tempBridgeLossLength,
-            tempBridgeLoss
-        );
+        return (strategyReportL1Length, strategyReportL1, tempBridgeLossLength, tempBridgeLoss);
     }
 
     function processPendingRequests(
@@ -552,14 +409,7 @@ contract PoolingManager is
         StrategyReportL1[] memory strategyReportL1,
         BridgeInteractionInfo[] memory bridgeDepositInfo,
         uint256 pendingRequestsExecutedLength
-    )
-        internal
-        returns (
-            uint256,
-            StrategyReportL1[] memory,
-            BridgeInteractionInfo[] memory
-        )
-    {
+    ) internal returns (uint256, StrategyReportL1[] memory, BridgeInteractionInfo[] memory) {
         (
             uint256 newStrategyReportL1Length,
             StrategyReportL1[] memory newStrategyReportL1,
@@ -575,34 +425,20 @@ contract PoolingManager is
         pendingRequestsExecutedCounter = pendingRequestsExecuted.length;
 
         if (tempBridgeAdditionalDepositLength > 0) {
-            uint256 totalLen = tempBridgeAdditionalDepositLength +
-                bridgeDepositInfo.length;
+            uint256 totalLen = tempBridgeAdditionalDepositLength + bridgeDepositInfo.length;
 
-            BridgeInteractionInfo[]
-                memory newBridgeDepositInfo = new BridgeInteractionInfo[](
-                    totalLen
-                );
+            BridgeInteractionInfo[] memory newBridgeDepositInfo = new BridgeInteractionInfo[](totalLen);
 
             for (uint256 i = 0; i < totalLen; i++) {
                 if (i < bridgeDepositInfo.length) {
                     newBridgeDepositInfo[i] = bridgeDepositInfo[i];
                 } else {
-                    newBridgeDepositInfo[i] = tempBridgeAdditionalDeposit[
-                        i - bridgeDepositInfo.length
-                    ];
+                    newBridgeDepositInfo[i] = tempBridgeAdditionalDeposit[i - bridgeDepositInfo.length];
                 }
             }
-            return (
-                newStrategyReportL1Length,
-                newStrategyReportL1,
-                newBridgeDepositInfo
-            );
+            return (newStrategyReportL1Length, newStrategyReportL1, newBridgeDepositInfo);
         } else {
-            return (
-                newStrategyReportL1Length,
-                newStrategyReportL1,
-                bridgeDepositInfo
-            );
+            return (newStrategyReportL1Length, newStrategyReportL1, bridgeDepositInfo);
         }
     }
 
@@ -621,13 +457,9 @@ contract PoolingManager is
             BridgeInteractionInfo[] memory tempBridgeAdditionalDeposit
         )
     {
-        newStrategyReportL1Length =
-            strategyReportL1Length +
-            pendingRequestsExecutedLength;
+        newStrategyReportL1Length = strategyReportL1Length + pendingRequestsExecutedLength;
         newStrategyReportL1 = new StrategyReportL1[](newStrategyReportL1Length);
-        tempBridgeAdditionalDeposit = new BridgeInteractionInfo[](
-            pendingRequestsExecutedLength
-        );
+        tempBridgeAdditionalDeposit = new BridgeInteractionInfo[](pendingRequestsExecutedLength);
 
         for (uint256 i = 0; i < newStrategyReportL1Length; i++) {
             if (i < strategyReportL1Length) {
@@ -661,32 +493,21 @@ contract PoolingManager is
         uint256 tempBridgeAdditionalDepositLength
     ) internal view returns (uint256) {
         uint256 indexCounter = i - strategyReportL1Length;
-        StrategyReportL1
-            memory pendingRequestExecutedElem = pendingRequestsExecuted[
-                indexCounter
-            ];
+        StrategyReportL1 memory pendingRequestExecutedElem = pendingRequestsExecuted[indexCounter];
         newStrategyReportL1[i] = pendingRequestExecutedElem;
 
         if (pendingRequestExecutedElem.amount > 0) {
-            StrategyInfo memory currentStrategyInfo = strategyInfo[
-                pendingRequestExecutedElem.l1Strategy
-            ];
+            StrategyInfo memory currentStrategyInfo = strategyInfo[pendingRequestExecutedElem.l1Strategy];
             bool found = false;
             for (uint256 index = 0; index < bridgeDepositInfo.length; index++) {
-                if (
-                    bridgeDepositInfo[index].bridge ==
-                    currentStrategyInfo.bridge
-                ) {
-                    bridgeDepositInfo[index]
-                        .amount += pendingRequestExecutedElem.amount;
+                if (bridgeDepositInfo[index].bridge == currentStrategyInfo.bridge) {
+                    bridgeDepositInfo[index].amount += pendingRequestExecutedElem.amount;
                     found = true;
                     break;
                 }
             }
             if (!found) {
-                tempBridgeAdditionalDeposit[
-                    tempBridgeAdditionalDepositLength
-                ] = BridgeInteractionInfo({
+                tempBridgeAdditionalDeposit[tempBridgeAdditionalDepositLength] = BridgeInteractionInfo({
                     bridge: currentStrategyInfo.bridge,
                     amount: pendingRequestExecutedElem.amount
                 });
@@ -697,9 +518,7 @@ contract PoolingManager is
         return tempBridgeAdditionalDepositLength;
     }
 
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyRole(0) {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(0) {}
 
     function updateBridgeDepositInfo(
         uint256 tempBridgeLossLength,
@@ -707,20 +526,10 @@ contract PoolingManager is
         BridgeInteractionInfo[] memory bridgeDepositInfo
     ) internal pure {
         for (uint256 index1 = 0; index1 < tempBridgeLossLength; index1++) {
-            BridgeInteractionInfo memory tempBridgeLossElem = tempBridgeLoss[
-                index1
-            ];
-            for (
-                uint256 index2 = 0;
-                index2 < bridgeDepositInfo.length;
-                index2++
-            ) {
-                if (
-                    tempBridgeLossElem.bridge ==
-                    bridgeDepositInfo[index2].bridge
-                ) {
-                    bridgeDepositInfo[index2].amount -= tempBridgeLossElem
-                        .amount;
+            BridgeInteractionInfo memory tempBridgeLossElem = tempBridgeLoss[index1];
+            for (uint256 index2 = 0; index2 < bridgeDepositInfo.length; index2++) {
+                if (tempBridgeLossElem.bridge == bridgeDepositInfo[index2].bridge) {
+                    bridgeDepositInfo[index2].amount -= tempBridgeLossElem.amount;
                     break;
                 }
             }

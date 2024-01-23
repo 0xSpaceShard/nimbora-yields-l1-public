@@ -27,26 +27,13 @@ interface IPoolingManager {
     // Events
     event PendingRequestsExecuted(uint256[] indices);
     event MessageResentToL2();
-    event BridgeCancelDepositRequestClaimedAndDeposited(
-        address l1BridgeAddress,
-        uint256 amount,
-        uint256 nonce
-    );
-    event CancelDepositRequestBridgeSent(
-        address l1BridgeAddress,
-        uint256 amount,
-        uint256 nonce
-    );
+    event BridgeCancelDepositRequestClaimedAndDeposited(address l1BridgeAddress, uint256 amount, uint256 nonce);
+    event CancelDepositRequestBridgeSent(address l1BridgeAddress, uint256 amount, uint256 nonce);
     event ReportHandled(uint256 epoch, StrategyReportL1[] strategyReportL1);
     event StrategyRegistered(address strategy, StrategyInfo strategyInfo);
 
     // Functions
-    function initialize(
-        address _owner,
-        uint256 _l2PoolingManager,
-        address _starknetCore,
-        address _relayer
-    ) external;
+    function initialize(address _owner, uint256 _l2PoolingManager, address _starknetCore, address _relayer) external;
 
     function hashFromCalldata(
         BridgeInteractionInfo[] calldata bridgeWithdrawInfo,
@@ -63,11 +50,7 @@ interface IPoolingManager {
         BridgeInteractionInfo[] calldata bridgeDepositInfo
     ) external view returns (uint256);
 
-    function registerStrategy(
-        address _strategy,
-        address _underlying,
-        address _bridge
-    ) external payable;
+    function registerStrategy(address _strategy, address _underlying, address _bridge) external payable;
 
     function resendMessageToL2() external payable returns (uint256);
 

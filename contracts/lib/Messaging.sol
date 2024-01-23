@@ -20,19 +20,12 @@ contract Messaging {
     }
 
     /// @notice Consume l2 message.
-    function _consumeL2Message(
-        uint256 l2ContractAddress,
-        uint256[] memory data
-    ) internal {
+    function _consumeL2Message(uint256 l2ContractAddress, uint256[] memory data) internal {
         starknetCore.consumeMessageFromL2(l2ContractAddress, data);
     }
 
     /// @notice Withdraw tokens from Starkgate bridge.
-    function _withdrawTokenFromBridge(
-        address l1BridgeAddress,
-        address _receiver,
-        uint256 _amount
-    ) internal {
+    function _withdrawTokenFromBridge(address l1BridgeAddress, address _receiver, uint256 _amount) internal {
         IStarknetBridge(l1BridgeAddress).withdraw(_amount, _receiver);
     }
 
@@ -44,10 +37,7 @@ contract Messaging {
         uint256 _value
     ) internal {
         if (_amount > 0) {
-            IStarknetBridge(l1BridgeAddress).deposit{value: _value}(
-                _amount,
-                _l2Receiver
-            );
+            IStarknetBridge(l1BridgeAddress).deposit{value: _value}(_amount, _l2Receiver);
         }
     }
 
@@ -59,11 +49,7 @@ contract Messaging {
         uint256 _nonce
     ) internal {
         if (_amount > 0) {
-            IStarknetBridge(l1BridgeAddress).depositCancelRequest(
-                _amount,
-                _l2Receiver,
-                _nonce
-            );
+            IStarknetBridge(l1BridgeAddress).depositCancelRequest(_amount, _l2Receiver, _nonce);
         }
     }
 
@@ -75,11 +61,7 @@ contract Messaging {
         uint256 _nonce
     ) internal {
         if (_amount > 0) {
-            IStarknetBridge(l1BridgeAddress).depositReclaim(
-                _amount,
-                _l2Receiver,
-                _nonce
-            );
+            IStarknetBridge(l1BridgeAddress).depositReclaim(_amount, _l2Receiver, _nonce);
         }
     }
 
@@ -90,16 +72,10 @@ contract Messaging {
         uint256[] memory payload,
         uint256 _value
     ) internal {
-        starknetCore.sendMessageToL2{value: _value}(
-            _l2Contract,
-            _selector,
-            payload
-        );
+        starknetCore.sendMessageToL2{value: _value}(_l2Contract, _selector, payload);
     }
 
-    function u256(
-        uint256 _value
-    ) internal pure returns (uint256 low, uint256 high) {
+    function u256(uint256 _value) internal pure returns (uint256 low, uint256 high) {
         low = _value & (UINT256_PART_SIZE - 1);
         high = _value >> UINT256_PART_SIZE_BITS;
     }

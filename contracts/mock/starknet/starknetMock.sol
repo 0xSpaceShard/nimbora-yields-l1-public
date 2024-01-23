@@ -14,17 +14,9 @@ contract StarknetMock {
         }
     }
 
-    function consumeMessageFromL2(
-        uint256 fromAddress,
-        uint256[] calldata payload
-    ) external returns (bytes32) {
+    function consumeMessageFromL2(uint256 fromAddress, uint256[] calldata payload) external returns (bytes32) {
         bytes32 msgHash = keccak256(
-            abi.encodePacked(
-                fromAddress,
-                uint256(uint160(msg.sender)),
-                payload.length,
-                payload
-            )
+            abi.encodePacked(fromAddress, uint256(uint160(msg.sender)), payload.length, payload)
         );
 
         require(l2ToL1Messages[msgHash] > 0, "INVALID_MESSAGE_TO_CONSUME");
@@ -70,14 +62,7 @@ contract StarknetMock {
 
         return
             keccak256(
-                abi.encodePacked(
-                    uint256(uint160(msg.sender)),
-                    toAddress,
-                    nonce,
-                    selector,
-                    payload.length,
-                    payload
-                )
+                abi.encodePacked(uint256(uint160(msg.sender)), toAddress, nonce, selector, payload.length, payload)
             );
     }
 
@@ -88,16 +73,6 @@ contract StarknetMock {
         uint256[] calldata payload,
         uint256 nonce
     ) external view returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    uint256(uint160(from)),
-                    toAddress,
-                    nonce,
-                    selector,
-                    payload.length,
-                    payload
-                )
-            );
+        return keccak256(abi.encodePacked(uint256(uint160(from)), toAddress, nonce, selector, payload.length, payload));
     }
 }

@@ -34,15 +34,10 @@ contract UniswapV3StrategyDiffDecimals is UniswapV3Strategy {
         );
     }
 
-    function _checkDecimals(
-        address _underlyingToken,
-        address _yieldToken
-    ) internal override {
-        uint8 underlyingTokenDecimals = IERC20Metadata(_underlyingToken)
-            .decimals();
+    function _checkDecimals(address _underlyingToken, address _yieldToken) internal override {
+        uint8 underlyingTokenDecimals = IERC20Metadata(_underlyingToken).decimals();
         uint8 yieldTokenDecimals = IERC20Metadata(_yieldToken).decimals();
-        if (underlyingTokenDecimals == yieldTokenDecimals)
-            revert ErrorLib.InvalidDecimals();
+        if (underlyingTokenDecimals == yieldTokenDecimals) revert ErrorLib.InvalidDecimals();
         underlyingTokenPrecision = 10 ** uint256(underlyingTokenDecimals);
         yieldTokenPrecision = 10 ** uint256(yieldTokenDecimals);
     }
@@ -51,17 +46,13 @@ contract UniswapV3StrategyDiffDecimals is UniswapV3Strategy {
         uint256 yieldPrice,
         uint256 amount
     ) internal view override returns (uint256) {
-        return
-            (pricefeedPrecision * yieldTokenPrecision * amount) /
-            (yieldPrice * underlyingTokenPrecision);
+        return (pricefeedPrecision * yieldTokenPrecision * amount) / (yieldPrice * underlyingTokenPrecision);
     }
 
     function _calculateYieldToUnderlyingAmount(
         uint256 yieldPrice,
         uint256 amount
     ) internal view override returns (uint256) {
-        return
-            (amount * yieldPrice * underlyingTokenPrecision) /
-            (pricefeedPrecision * yieldTokenPrecision);
+        return (amount * yieldPrice * underlyingTokenPrecision) / (pricefeedPrecision * yieldTokenPrecision);
     }
 }
