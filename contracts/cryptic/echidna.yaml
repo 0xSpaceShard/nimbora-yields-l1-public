@@ -1,0 +1,7 @@
+corpusDir: 'corpus'
+testMode: assertion
+testLimit: 5000
+shrinkLimit: 500
+testMaxGas: 800003000
+timeout: 3600 
+codeSize: 0xfffffffffff 

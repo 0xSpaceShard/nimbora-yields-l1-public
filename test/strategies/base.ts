@@ -4,6 +4,7 @@ import { Contract, Wallet } from "ethers";
 
 describe("StrategyBase Test", function () {
   const maxUint256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+  const zeroAddress = "0x0000000000000000000000000000000000000000"
 
   async function loadFixture() {
     const owner = await ethers.provider.getSigner(0);
@@ -36,12 +37,49 @@ describe("StrategyBase Test", function () {
     return { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, testStrategyBase, testStrategyBaseAddress };
   }
 
+  it("should revert when _l2PoolingManager is zero address", async function () {
+    const { underlyingTokenAddress, yieldTokenAddress, testStrategyBase } = await loadFixture();
+    const testStrategyBaseFactory = await ethers.getContractFactory('TestStrategyBase');
+    await expect(upgrades.deployProxy(testStrategyBaseFactory, [
+      zeroAddress,
+      underlyingTokenAddress,
+      yieldTokenAddress
+    ])).to.be.revertedWithCustomError(testStrategyBase, "ZeroAddress");
+  });
+
+  it("should revert when _underlyingToken is zero address", async function () {
+    const { poolingManagerAddress, yieldTokenAddress, testStrategyBase } = await loadFixture();
+    const testStrategyBaseFactory = await ethers.getContractFactory('TestStrategyBase');
+
+    await expect(upgrades.deployProxy(testStrategyBaseFactory, [
+      poolingManagerAddress,
+      zeroAddress,
+      yieldTokenAddress
+    ])).to.be.revertedWithCustomError(testStrategyBase, "ZeroAddress");
+  });
+
+  it("should revert when _yieldToken is zero address", async function () {
+    const { poolingManagerAddress, underlyingTokenAddress, testStrategyBase } = await loadFixture();
+    const testStrategyBaseFactory = await ethers.getContractFactory('TestStrategyBase');
+
+    await expect(upgrades.deployProxy(testStrategyBaseFactory, [
+      poolingManagerAddress,
+      underlyingTokenAddress,
+      zeroAddress
+    ])).to.be.revertedWithCustomError(testStrategyBase, "ZeroAddress");
+  });
+
   it("test init", async function () {
     const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, testStrategyBase, testStrategyBaseAddress } = await loadFixture();
     expect(await testStrategyBase.poolingManager()).equal(poolingManagerAddress);
     expect(await testStrategyBase.underlyingToken()).equal(underlyingTokenAddress);
     expect(await testStrategyBase.yieldToken()).equal(yieldTokenAddress);
     expect(await underlyingToken.allowance(poolingManagerAddress, yieldTokenAddress)).equal(maxUint256);
+  });
+
+  it("test addressToApprove", async function () {
+    const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, testStrategyBase, testStrategyBaseAddress } = await loadFixture();
+    expect(await testStrategyBase.addressToApprove()).equal(yieldTokenAddress);
   });
 
   it("test yieldBalance", async function () {
@@ -98,6 +136,27 @@ describe("StrategyBase Test", function () {
     await testStrategyBase.checkOwnerValidOrRevert();
   });
 
+  it("test checkPoolingManagerOrRevert revert", async function () {
+    const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, testStrategyBase, testStrategyBaseAddress } = await loadFixture();
+    await expect(testStrategyBase.checkPoolingManagerOrRevert())
+      .to.be.revertedWithCustomError(testStrategyBase, "InvalidCaller");
+  });
+
+  it("test checkPoolingManagerOrRevert pass", async function () {
+    const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, testStrategyBase, testStrategyBaseAddress } = await loadFixture();
+    await network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: [poolingManagerAddress],
+    });
+    const impersonatedSigner = await ethers.getSigner(poolingManagerAddress);
+    const testStrategyBaseConnected = testStrategyBase.connect(impersonatedSigner) as Contract;
+    await testStrategyBaseConnected.checkPoolingManagerOrRevert()
+    await network.provider.request({
+      method: "hardhat_stopImpersonatingAccount",
+      params: [poolingManagerAddress],
+    });
+  });
+
   it("test withdraw revert invalid caller", async function () {
     const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, testStrategyBase, testStrategyBaseAddress } = await loadFixture();
     const amount = ethers.parseUnits('1', 'ether');
@@ -126,9 +185,7 @@ describe("StrategyBase Test", function () {
 
   it("test action withdraw", async function () {
     const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, testStrategyBase, testStrategyBaseAddress } = await loadFixture();
-    const depositAmount = ethers.parseUnits('1', 'ether');
     const withdrawalAmount = ethers.parseUnits('0.5', 'ether');
-
     const amount = ethers.parseUnits('1', 'ether');
     await underlyingToken.transfer(poolingManager, amount);
     await poolingManager.deposit(testStrategyBaseAddress, amount);
@@ -142,6 +199,25 @@ describe("StrategyBase Test", function () {
     expect(lastNav).to.equal(new_nav);
     expect(lastNav).to.equal(nav);
     expect(lastWithdrawalAmount).to.equal(withdrawalAmount);
+  });
+
+  it("test action withdraw, yieldAmountToDeposit > yield balance ", async function () {
+    const { owner, poolingManager, poolingManagerAddress, underlyingToken, underlyingTokenAddress, yieldToken, yieldTokenAddress, testStrategyBase, testStrategyBaseAddress } = await loadFixture();
+    const withdrawalAmount = ethers.parseUnits('2', 'ether');
+    const amount = ethers.parseUnits('1', 'ether');
+    await underlyingToken.transfer(poolingManager, amount);
+    await poolingManager.deposit(testStrategyBaseAddress, amount);
+    await poolingManager.withdraw(testStrategyBaseAddress, withdrawalAmount);
+
+    const lastNav = await poolingManager.lastNav();
+    const lastWithdrawalAmount = await poolingManager.lastWithdrawalAmount();
+    const nav = await testStrategyBase.nav();
+
+    const expectedWithdrawalAmount = '999999999999999999'
+    const new_nav = "0"
+    expect(lastNav).to.equal(new_nav);
+    expect(lastNav).to.equal(nav);
+    expect(lastWithdrawalAmount).to.equal(expectedWithdrawalAmount);
   });
 
 });

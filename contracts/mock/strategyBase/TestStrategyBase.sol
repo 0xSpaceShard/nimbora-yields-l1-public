@@ -34,6 +34,10 @@ contract TestStrategyBase is StrategyBase {
         _assertOnlyRoleOwner();
     }
 
+    function checkPoolingManagerOrRevert() public view {
+        _assertOnlyPoolingManager();
+    }
+
     function getDepositCalldata(
         uint256 amount
     )

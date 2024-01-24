@@ -400,6 +400,19 @@ describe("Pooling Manager Test", function () {
         expect(messageReceivedL2).to.equal(messageReceivedL2Call);
         const l1ToL2Message = await starknetMock.l1ToL2Messages(messageReceivedL2);
         expect(l1ToL2Message).to.be.equal(1 + l2MessagingEthFee);
+
+
+        const ethTotalDeposit = await ethBridge.totalDeposited();
+        const ethTotalWithdrawn = await ethBridge.totalWithdrawn();
+
+        const daiTotalDeposited = await daiBridge.totalDeposited();
+        const daiTotalWithdrawn = await daiBridge.totalWithdrawn();
+
+        expect(ethTotalDeposit).to.be.equal("0");
+        expect(ethTotalWithdrawn).to.be.equal(depositAmount);
+
+        expect(daiTotalDeposited).to.be.equal("0");
+        expect(daiTotalWithdrawn).to.be.equal("0");
     });
 
     it("test handleReport one strategy with report order, no revert, no pending", async function () {
@@ -436,6 +449,17 @@ describe("Pooling Manager Test", function () {
         expect(messageReceivedL2).to.equal(messageReceivedL2Call);
         const l1ToL2Message = await starknetMock.l1ToL2Messages(messageReceivedL2);
         expect(l1ToL2Message).to.be.equal(1 + l2MessagingEthFee);
+        const ethTotalDeposit = await ethBridge.totalDeposited();
+        const ethTotalWithdrawn = await ethBridge.totalWithdrawn();
+
+        const daiTotalDeposited = await daiBridge.totalDeposited();
+        const daiTotalWithdrawn = await daiBridge.totalWithdrawn();
+
+        expect(ethTotalDeposit).to.be.equal("0");
+        expect(ethTotalWithdrawn).to.be.equal("0");
+
+        expect(daiTotalDeposited).to.be.equal("0");
+        expect(daiTotalWithdrawn).to.be.equal("0");
     });
 
     it("test handleReport one strategy with withdraw order, no revert, no pending", async function () {
@@ -477,6 +501,18 @@ describe("Pooling Manager Test", function () {
         expect(messageReceivedL2).to.equal(messageReceivedL2Call);
         const l1ToL2Message = await starknetMock.l1ToL2Messages(messageReceivedL2);
         expect(l1ToL2Message).to.be.equal(1 + l2MessagingEthFee);
+
+        const ethTotalDeposit = await ethBridge.totalDeposited();
+        const ethTotalWithdrawn = await ethBridge.totalWithdrawn();
+
+        const daiTotalDeposited = await daiBridge.totalDeposited();
+        const daiTotalWithdrawn = await daiBridge.totalWithdrawn();
+
+        expect(ethTotalDeposit).to.be.equal(amountWithdraw);
+        expect(ethTotalWithdrawn).to.be.equal("0");
+
+        expect(daiTotalDeposited).to.be.equal("0");
+        expect(daiTotalWithdrawn).to.be.equal("0");
     });
 
     it("test handleReport one strategy with too high withdraw order, no revert, no pending", async function () {
@@ -517,6 +553,18 @@ describe("Pooling Manager Test", function () {
         expect(messageReceivedL2).to.equal(messageReceivedL2Call);
         const l1ToL2Message = await starknetMock.l1ToL2Messages(messageReceivedL2);
         expect(l1ToL2Message).to.be.equal(1 + l2MessagingEthFee);
+
+        const ethTotalDeposit = await ethBridge.totalDeposited();
+        const ethTotalWithdrawn = await ethBridge.totalWithdrawn();
+
+        const daiTotalDeposited = await daiBridge.totalDeposited();
+        const daiTotalWithdrawn = await daiBridge.totalWithdrawn();
+
+        expect(ethTotalDeposit).to.be.equal("999999999999999999");
+        expect(ethTotalWithdrawn).to.be.equal("0");
+
+        expect(daiTotalDeposited).to.be.equal("0");
+        expect(daiTotalWithdrawn).to.be.equal("0");
     });
 
     it("test handleReport one strategy with deposit order, revert, no pending", async function () {
@@ -582,7 +630,7 @@ describe("Pooling Manager Test", function () {
         await poolingManager.registerStrategy(savingDaiStrategyAddress, daiAddress, daiBridgeAddress);
 
         // Previous Price of one Wsteth: 1.2 WETH, now update to 1 WETH but amm still trading at 1.2WETH
-        mockV3Aggregator.updateAnswer("1000000000000000000");
+        await mockV3Aggregator.updateAnswer("1000000000000000000");
 
         let epoch = "1";
         const depositAmount = ethers.parseUnits('1', 'ether');
@@ -599,7 +647,7 @@ describe("Pooling Manager Test", function () {
         ];
         const expectedHashL2 = computeFromReportL2(epoch, bridgeInfo, strategyReportL2, bridgeDepositInfo);
         const messageReceivedL1 = computeMessageReceivedL1(l2PoolingManager, poolingManagerAddress, BigInt(expectedHashL2));
-        starknetMock.addMessage([messageReceivedL1])
+        await starknetMock.addMessage([messageReceivedL1])
         await poolingManager.handleReport(epoch, bridgeInfo, strategyReportL2, bridgeDepositInfo, 0, l2MessagingEthFee, 1, { value: l2MessagingEthFee });
         // await expect(poolingManager.handleReport(epoch, bridgeInfo, strategyReportL2, bridgeDepositInfo, 0, l2MessagingEthFee, 1, { value: l2MessagingEthFee })).to.emit(poolingManager, "ReportHandled").withArgs(epoch, 1, [[savingDaiStrategyAddress, "1999999998999999999", "0"], ["0", "0", "0"]]);
 
@@ -622,7 +670,51 @@ describe("Pooling Manager Test", function () {
         // const pendingRequestsCreatedExpected = [uniswapV3StrategyAddress, "0", depositAmount];
         // const pendingRequestsCreated = await poolingManager.pendingRequests(0);
         // expect(pendingRequestsCreated).to.be.equal(pendingRequestsCreatedExpected);
+
+        const ethTotalDeposit = await ethBridge.totalDeposited();
+        const ethTotalWithdrawn = await ethBridge.totalWithdrawn();
+
+        const daiTotalDeposited = await daiBridge.totalDeposited();
+        const daiTotalWithdrawn = await daiBridge.totalWithdrawn();
+
+        expect(ethTotalDeposit).to.be.equal("0");
+        expect(ethTotalWithdrawn).to.be.equal(depositAmount);
+
+        expect(daiTotalDeposited).to.be.equal("0");
+        expect(daiTotalWithdrawn).to.be.equal(depositAmountDai);
     });
+
+    it("test handleReport two strategy with deposit order, one revert and go to pending, no pending", async function () {
+        const { owner, relayer, starknetMock, starknetMockAddress, dai, daiAddress, weth, wethAddress, wsteth, wstethAddress, sdai, sdaiAddress, daiBridge, daiBridgeAddress, ethBridge, ethBridgeAddress, poolingManager, poolingManagerAddress } = await InitPoolingManager();
+        const { mockV3Aggregator, mockV3AggregatorAddress, uniswapV3Strategy, uniswapV3StrategyAddress } = await InitUniswap(poolingManagerAddress, weth, wethAddress, wsteth, wstethAddress);
+        const { savingDaiStrategy, savingDaiStrategyAddress } = await InitSavingDai(poolingManagerAddress, daiAddress, sdaiAddress);
+
+        await poolingManager.registerStrategy(uniswapV3StrategyAddress, wethAddress, ethBridgeAddress);
+        await poolingManager.registerStrategy(savingDaiStrategyAddress, daiAddress, daiBridgeAddress);
+
+        // Previous Price of one Wsteth: 1.2 WETH, now update to 1 WETH but amm still trading at 1.2WETH
+        await mockV3Aggregator.updateAnswer("1000000000000000000");
+
+        let epoch = "1";
+        const depositAmount = ethers.parseUnits('1', 'ether');
+        const depositAmountDai = ethers.parseUnits('2', 'ether');
+        const bridgeInfo = [
+            { bridge: "5", amount: "200000000000000000" },
+        ];
+        const strategyReportL2 = [
+            { l1Strategy: "2", actionId: "200000000000000000", amount: "1000000000000000000" },
+        ];
+        const bridgeDepositInfo: any = [
+        ];
+
+        const expectedHashL2 = computeFromReportL2(epoch, bridgeInfo, strategyReportL2, bridgeDepositInfo);
+        console.log(expectedHashL2)
+
+    });
+
+
+
+
 
 
 

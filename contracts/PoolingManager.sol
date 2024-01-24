@@ -75,7 +75,7 @@ contract PoolingManager is
         address _relayer,
         address _ethBridge,
         address _ethWrapped
-    ) public initializer {
+    ) public virtual initializer {
         __Pausable_init();
         __AccessControl_init();
         __UUPSUpgradeable_init();
