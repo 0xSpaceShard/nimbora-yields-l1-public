@@ -18,30 +18,30 @@ contract TestStrategyBase is StrategyBase {
         address _poolingManager,
         address _underlyingTokenAddress,
         address _yieldTokenAddress
-    ) public virtual initializer {
-        initializeStrategyBase(
+    ) external virtual initializer {
+        _initializeStrategyBase(
             _poolingManager,
             _underlyingTokenAddress,
             _yieldTokenAddress
         );
     }
 
-    function addressToApprove() public view override returns (address) {
+    function addressToApprove() external view override returns (address) {
         return (yieldToken);
     }
 
-    function checkOwnerValidOrRevert() public view {
+    function checkOwnerValidOrRevert() external view {
         _assertOnlyRoleOwner();
     }
 
-    function checkPoolingManagerOrRevert() public view {
+    function checkPoolingManagerOrRevert() external view {
         _assertOnlyPoolingManager();
     }
 
     function getDepositCalldata(
         uint256 amount
     )
-        public
+        external
         view
         override
         returns (address target, bytes memory depositCalldata)
@@ -58,7 +58,7 @@ contract TestStrategyBase is StrategyBase {
         uint256 yieldAmountToDeposit = IERC4626(yieldToken).previewWithdraw(
             amount
         );
-        uint256 strategyYieldBalance = yieldBalance();
+        uint256 strategyYieldBalance = _yieldBalance();
         if (yieldAmountToDeposit > strategyYieldBalance) {
             uint256 assets = IERC4626(yieldToken).redeem(
                 strategyYieldBalance,
@@ -67,7 +67,7 @@ contract TestStrategyBase is StrategyBase {
             );
             return (assets);
         } else {
-            uint256 assets = IERC4626(yieldToken).withdraw(
+            IERC4626(yieldToken).withdraw(
                 amount,
                 poolingManager,
                 address(this)

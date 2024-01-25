@@ -17,44 +17,29 @@ struct StrategyReport {
     uint256 amount;
 }
 
+struct StrategyReportAndId {
+    StrategyReport strategyReport;
+    uint256 index;
+}
+
 uint256 constant DEPOSIT = 0;
 uint256 constant REPORT = 1;
-uint256 constant WITHDRAW = 2;
+uint256 constant WITHDRAWAL = 2;
 uint256 constant L2_HANDLER_SELECTOR = 0x10e13e50cb99b6b3c8270ec6e16acfccbe1164a629d74b43549567a77593aff;
 
 bytes32 constant OWNER_ROLE = keccak256("0x00");
 bytes32 constant RELAYER_ROLE = keccak256("0x01");
+bytes32 constant PAUSER_ROLE = keccak256("0x02");
 
-interface IPoolingManager {
+interface IPoolingManagerBase {
     // Events
-    event PendingRequestsExecuted(uint256[] indices);
-    event MessageResentToL2();
-    event BridgeCancelDepositRequestClaimed(
-        address l1BridgeAddress,
-        uint256 amount,
-        uint256 nonce
-    );
-    event CancelDepositRequestBridgeSent(
-        address l1BridgeAddress,
-        uint256 amount,
-        uint256 nonce
-    );
+    event PendingRequestsExecuted(uint256 strategyReportsFailedLength);
     event ReportHandled(
         uint256 epoch,
         uint256 strategyReportL1Length,
         StrategyReport[] strategyReportL1
     );
     event StrategyRegistered(address strategy, StrategyInfo strategyInfo);
-
-    // Functions
-    function initialize(
-        address _owner,
-        uint256 _l2PoolingManager,
-        address _starknetCore,
-        address _relayer,
-        address _ethBridge,
-        address _ethWrapped
-    ) external;
 
     function bridgeEthFeesMultiplicator(
         BridgeInteractionInfo[] calldata bridgeDepositInfo
@@ -64,19 +49,6 @@ interface IPoolingManager {
         address _strategy,
         address _underlying,
         address _bridge
-    ) external payable;
-
-    function cancelDepositRequestBridge(
-        address l1BridgeAddress,
-        uint256 amount,
-        uint256 nonce
-    ) external;
-
-    function claimBridgeCancelDepositRequestAndDeposit(
-        address l1BridgeAddress,
-        uint256 amount,
-        uint256 nonce,
-        uint256 l2BridgeEthFee
     ) external payable;
 
     function executePendingRequests() external;

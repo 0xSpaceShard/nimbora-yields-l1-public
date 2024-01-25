@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {ErrorLib} from "../../lib/ErrorLib.sol";
+// OpenZeppelin imports
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {UniswapV3Strategy} from "./uniswapV3.sol";
 
-contract UniswapV3StrategyDiffDecimals is UniswapV3Strategy {
+// Local imports
+import {ErrorLib} from "../../../lib/ErrorLib.sol";
+import {UniswapV3StrategyBase} from "../UniswapV3StrategyBase.sol";
+
+contract UniswapV3StrategyDiffDecimals is UniswapV3StrategyBase {
     uint256 public underlyingTokenPrecision;
     uint256 public yieldTokenPrecision;
 
@@ -21,8 +24,8 @@ contract UniswapV3StrategyDiffDecimals is UniswapV3Strategy {
         address _chainlinkPricefeed,
         uint256 _minReceivedAmountFactor,
         uint24 _poolFee
-    ) public override initializer {
-        UniswapV3Strategy.initialize(
+    ) external initializer {
+        _initializeUniswapV3StrategyBase(
             _l2PoolingManager,
             _underlyingToken,
             _yieldToken,
