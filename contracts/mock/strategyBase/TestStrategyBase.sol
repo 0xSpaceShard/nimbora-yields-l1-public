@@ -58,10 +58,10 @@ contract TestStrategyBase is StrategyBase {
         uint256 yieldAmountToDeposit = IERC4626(yieldToken).previewWithdraw(
             amount
         );
-        uint256 yieldBalance = yieldBalance();
-        if (yieldAmountToDeposit > yieldBalance) {
+        uint256 strategyYieldBalance = yieldBalance();
+        if (yieldAmountToDeposit > strategyYieldBalance) {
             uint256 assets = IERC4626(yieldToken).redeem(
-                yieldBalance,
+                strategyYieldBalance,
                 poolingManager,
                 address(this)
             );

@@ -11,23 +11,25 @@ struct BridgeInteractionInfo {
     uint256 amount;
 }
 
-struct StrategyReportL2 {
+struct StrategyReport {
     address l1Strategy;
-    uint256 actionId;
+    uint256 data1; // Can represent l1Nav or actionId
     uint256 amount;
 }
 
-struct StrategyReportL1 {
-    address l1Strategy;
-    uint256 l1Nav;
-    uint256 amount;
-}
+uint256 constant DEPOSIT = 0;
+uint256 constant REPORT = 1;
+uint256 constant WITHDRAW = 2;
+uint256 constant L2_HANDLER_SELECTOR = 0x10e13e50cb99b6b3c8270ec6e16acfccbe1164a629d74b43549567a77593aff;
+
+bytes32 constant OWNER_ROLE = keccak256("0x00");
+bytes32 constant RELAYER_ROLE = keccak256("0x01");
 
 interface IPoolingManager {
     // Events
     event PendingRequestsExecuted(uint256[] indices);
     event MessageResentToL2();
-    event BridgeCancelDepositRequestClaimedAndDeposited(
+    event BridgeCancelDepositRequestClaimed(
         address l1BridgeAddress,
         uint256 amount,
         uint256 nonce
@@ -37,7 +39,11 @@ interface IPoolingManager {
         uint256 amount,
         uint256 nonce
     );
-    event ReportHandled(uint256 epoch, StrategyReportL1[] strategyReportL1);
+    event ReportHandled(
+        uint256 epoch,
+        uint256 strategyReportL1Length,
+        StrategyReport[] strategyReportL1
+    );
     event StrategyRegistered(address strategy, StrategyInfo strategyInfo);
 
     // Functions
@@ -45,19 +51,10 @@ interface IPoolingManager {
         address _owner,
         uint256 _l2PoolingManager,
         address _starknetCore,
-        address _relayer
+        address _relayer,
+        address _ethBridge,
+        address _ethWrapped
     ) external;
-
-    function hashFromCalldata(
-        BridgeInteractionInfo[] calldata bridgeWithdrawInfo,
-        StrategyReportL2[] calldata strategyReportL2,
-        BridgeInteractionInfo[] calldata bridgeDepositInfo
-    ) external pure returns (uint256);
-
-    function hashFromReportL1(
-        uint256 epoch,
-        StrategyReportL1[] calldata strategyReportL1
-    ) external pure returns (uint256);
 
     function bridgeEthFeesMultiplicator(
         BridgeInteractionInfo[] calldata bridgeDepositInfo
@@ -69,13 +66,11 @@ interface IPoolingManager {
         address _bridge
     ) external payable;
 
-    function resendMessageToL2() external payable returns (uint256);
-
     function cancelDepositRequestBridge(
         address l1BridgeAddress,
         uint256 amount,
         uint256 nonce
-    ) external returns (uint256);
+    ) external;
 
     function claimBridgeCancelDepositRequestAndDeposit(
         address l1BridgeAddress,
@@ -87,10 +82,12 @@ interface IPoolingManager {
     function executePendingRequests() external;
 
     function handleReport(
-        BridgeInteractionInfo[] calldata bridgeWithdrawInfo,
-        StrategyReportL2[] calldata strategyReportL2,
-        BridgeInteractionInfo[] calldata bridgeDepositInfo,
+        uint256 epoch,
+        BridgeInteractionInfo[] memory bridgeWithdrawInfo,
+        StrategyReport[] memory strategyReportL2,
+        BridgeInteractionInfo[] memory bridgeDepositInfo,
         uint256 l2BridgeEthFee,
-        uint256 l2MessagingEthFee
+        uint256 l2MessagingEthFee,
+        uint256 minSuccessCall
     ) external payable;
 }

@@ -1,0 +1,58 @@
+Reentrancy risks in the PoolingManager contract, in the executePendingRequests and processStrategyReports functions. The main concern revolves around the sequence of external calls followed by state variable updates, potentially opening the door for reentrancy attacks.
+
+
+Reentrancy in executePendingRequests (PoolingManager):
+External Calls: Executes external calls via target.call(depositCalldata) and IStrategyBase(currentReport.l1Strategy).withdraw(currentReport.amount).
+State Variable Updates: Post these external calls, it updates the pendingRequestsExecuted state variable.
+Cross-Function Exposure: Given that pendingRequestsExecuted is utilized in various functions, there's a heightened risk of reentrancy where an attacker might trigger other dependent functions, manipulating the contract’s intended logic.
+
+Reentrancy in PoolingManager.handleReport (PoolingManager)
+External Calls: The function includes several external calls such as consumeMessageFromL2, withdrawFromBridges, depositToBridges, and _sendMessageToL2, some of which involve sending ETH.
+State Variable Updates: Updates various state variables based on the results of these external calls.
+Cross-Function Exposure: Due to multiple external calls and interactions with other contracts or functions, there is a heightened risk of reentrancy. The sequence of calls and updates may allow attackers to exploit the contract.
+
+Reentrancy in processStrategyReports (PoolingManager):
+External Calls: This function, akin to executePendingRequests, involves external calls potentially vulnerable to interception or manipulation.
+State Variable Updates: Follows up these calls with modifications to the pendingRequests state variable.
+Cross-Function Exposure: The usage of pendingRequests across multiple functions similarly elevates the risk of reentrancy attacks.
+
+Reentrancy in PoolingManager.handleReport (PoolingManager):
+External Calls: This function initialise execute an approval, we shuld always be careful on the token address provided.
+
+
+Reentrancy in initialize (UniswapV3Strategy):
+External Calls: This function initialise execute an approval, the Initialiser modifier avoid a second call from malicious approval function.
+
+In each case, the potential for reentrancy arises from external calls followed by state changes, or the use of shared state variables across multiple functions.
+
+
+Mitigation Strategy Considerations:
+Not using Reentrancy Guard for gas saving.
+Role-Based Restrictions: Leveraging the RELAYER role to restrict function calls, and the Initialiser modifier on UniswapV3Strategy.
+Known Contracts Safeguard: Interactions are limited to pre-registered strategies and those do not interact with this contract.
+
+
+
+
+Granting unrestricted approval to external contracts, including ERC-4626, Uniswap Router, or Bridge, on both underlying and yield tokens presents distinct security challenges. While this approach is commonly adopted to optimize for gas efficiency, it potentially opens up avenues for security vulnerabilities:
+
+Full Approval in registerStrategy (Pooling Manager):
+The function grants maximum approval (type(uint256).max) to the _bridge and the address returned by IStrategyBase(_strategy).addressToApprove() for the _underlying token.
+The liquidity is available when a strategy revert and executePendingRequests() gets executed late on.
+
+Full Approval in _initializeUniswap (Pooling uniswapV3Strategy):
+The function grants maximum approval (type(uint256).max) to the _uniswapRouterAddress for the _yieldToken.
+The liquidity is always available.
+
+
+Mitigation Strategy Considerations:
+Allowing both option based on the trustworthiness of the contract: full approval or only when needed. 
+
+
+Issues with External Calls Inside a Loop
+
+Calls Inside a Loop in executePendingRequests and processStrategyReports (PoolingManager):
+
+In both functions, for any actionId, the nav() is called, it is calculated based on the strategy logic and might involves calls to external DeFi protocols such as chainlink. If it reverts, it could block the function and the funds would be lost. 
+Gas Limit Risks: Each external call consumes gas. When these calls are inside a loop, the total gas consumption can become unpredictable and potentially exceed block gas limits, especially if the loop iterates many times. This can lead to out-of-gas errors, causing the function to fail.
+Denial of Service (DoS) by Block Gas Limit: A malicious or poorly designed contract could consume a high amount of gas when called, deliberately or inadvertently causing the loop in the contract to run out of gas and fail. This can be used as a DoS attack vector.

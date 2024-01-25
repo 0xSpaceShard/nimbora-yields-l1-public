@@ -163,12 +163,12 @@ contract UniswapV3Strategy is StrategyBase {
         uint256 amountInMaximum = _applySlippageWithdrawExactOutputSingle(
             yieldAmount
         );
-        uint256 yieldBalance = yieldBalance();
+        uint256 strategyYieldBalance = yieldBalance();
 
-        if (amountInMaximum > yieldBalance) {
+        if (amountInMaximum > strategyYieldBalance) {
             uint256 underlyingAmount = _calculateYieldToUnderlyingAmount(
                 latestAnswer,
-                yieldBalance
+                strategyYieldBalance
             );
             uint256 amountOutMinimum = _applySlippageDepositExactInputSingle(
                 underlyingAmount
@@ -180,7 +180,7 @@ contract UniswapV3Strategy is StrategyBase {
                     fee: poolFee,
                     recipient: poolingManager,
                     deadline: block.timestamp,
-                    amountIn: yieldBalance,
+                    amountIn: strategyYieldBalance,
                     amountOutMinimum: amountOutMinimum,
                     sqrtPriceLimitX96: 0
                 });
