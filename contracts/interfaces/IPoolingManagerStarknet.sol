@@ -30,10 +30,10 @@ interface IPoolingManagerStarknet {
         uint256 nonce
     ) external;
 
-    function claimBridgeCancelDepositRequestAndDeposit(
+    function claimBridgeCancelDepositRequest(
         address l1BridgeAddress,
+        address tokenAddress,
         uint256 amount,
-        uint256 nonce,
-        uint256 l2BridgeEthFee
-    ) external payable;
+        uint256 nonce
+    ) external;
 }

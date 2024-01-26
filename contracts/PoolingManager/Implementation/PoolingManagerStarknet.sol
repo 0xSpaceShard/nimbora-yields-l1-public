@@ -1,20 +1,16 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0.
 pragma solidity ^0.8.20;
 
 // OpenZeppelin imports
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 // Local imports
-import {StarknetMessaging} from "../../lib/StarknetMessaging.sol";
-import {PoolingManagerBase} from "../PoolingManagerBase.sol";
-import "../../interfaces/IPoolingManagerBase.sol";
-import {IPoolingManagerStarknet} from "../../interfaces/IPoolingManagerStarknet.sol";
+import { StarknetMessaging } from '../../lib/StarknetMessaging.sol';
+import { PoolingManagerBase } from '../PoolingManagerBase.sol';
+import '../../interfaces/IPoolingManagerBase.sol';
+import { IPoolingManagerStarknet } from '../../interfaces/IPoolingManagerStarknet.sol';
 
-abstract contract PoolingManagerStarknet is
-    PoolingManagerBase,
-    StarknetMessaging,
-    IPoolingManagerStarknet
-{
+contract PoolingManagerStarknet is PoolingManagerBase, StarknetMessaging, IPoolingManagerStarknet {
     constructor() initializer {}
 
     function initialize(
@@ -26,13 +22,7 @@ abstract contract PoolingManagerStarknet is
         address _ethWrapped
     ) public virtual initializer {
         initializeMessaging(_starknetCore);
-        _initializePoolingManagerBase(
-            _owner,
-            _l2PoolingManager,
-            _relayer,
-            _ethBridge,
-            _ethWrapped
-        );
+        _initializePoolingManagerBase(_owner, _l2PoolingManager, _relayer, _ethBridge, _ethWrapped);
     }
 
     function cancelDepositRequestBridge(
@@ -40,36 +30,26 @@ abstract contract PoolingManagerStarknet is
         uint256 amount,
         uint256 nonce
     ) public onlyRole(OWNER_ROLE) {
-        depositCancelRequestToBridgeToken(
-            l1BridgeAddress,
-            l2PoolingManager,
-            amount,
-            nonce
-        );
+        depositCancelRequestToBridgeToken(l1BridgeAddress, l2PoolingManager, amount, nonce);
         emit CancelDepositRequestBridgeSent(l1BridgeAddress, amount, nonce);
     }
 
-    function claimBridgeCancelDepositRequestAndDeposit(
+    function claimBridgeCancelDepositRequest(
         address l1BridgeAddress,
         address tokenAddress,
         uint256 amount,
         uint256 nonce
-    ) public payable onlyRole(OWNER_ROLE) {
-        depositReclaimToBridgeToken(
-            l1BridgeAddress,
-            l2PoolingManager,
-            amount,
-            nonce
-        );
-        IERC20(tokenAddress).transfer(msg.sender, amount);
-
+    ) public onlyRole(OWNER_ROLE) {
+        depositReclaimToBridgeToken(l1BridgeAddress, l2PoolingManager, amount, nonce);
+        if (l1BridgeAddress == ethBridge) {
+            payable(msg.sender).transfer(amount);
+        } else {
+            IERC20(tokenAddress).transfer(msg.sender, amount);
+        }
         emit BridgeCancelDepositRequestClaimed(l1BridgeAddress, amount, nonce);
     }
 
-    function _withdrawTokenFromBridgeL2(
-        address bridge,
-        uint256 amount
-    ) internal override {
+    function _withdrawTokenFromBridgeL2(address bridge, uint256 amount) internal override {
         _withdrawTokenFromBridge(bridge, address(this), amount);
     }
 
@@ -82,10 +62,7 @@ abstract contract PoolingManagerStarknet is
     }
 
     function _verifyCalldataL2(uint256 dataHash) internal override {
-        _consumeL2Message(
-            l2PoolingManager,
-            _getMessagePayloadData(0, dataHash)
-        );
+        _consumeL2Message(l2PoolingManager, _getMessagePayloadData(0, dataHash));
     }
 
     function _sendMessageL2(
