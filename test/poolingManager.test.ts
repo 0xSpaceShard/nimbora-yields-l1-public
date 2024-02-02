@@ -20,6 +20,7 @@ import {
     WstethMintable,
     UniswapV3FactoryMock,
     UniswapRouterMock,
+    StrategyBase,
 } from '../typechain-types';
 import { beforeEach } from 'mocha';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
@@ -61,6 +62,7 @@ describe('Starknet Pooling Manager Test', function () {
     let uniswapV3StrategyAddress: string;
     let ethBridge: StarknetEthBridgeMock;
     let ethBridgeAddress: string;
+    let uniswapRouterMock: UniswapRouterMock;
 
     beforeEach(async () => {
         admin = await ethers.provider.getSigner(0);
@@ -150,7 +152,7 @@ describe('Starknet Pooling Manager Test', function () {
         const mockV3AggregatorAddress = await mockV3Aggregator.getAddress();
 
         const uniswapRouterMockFactory = await ethers.getContractFactory('UniswapRouterMock');
-        const uniswapRouterMock: UniswapRouterMock = (await uniswapRouterMockFactory.deploy()) as UniswapRouterMock;
+        uniswapRouterMock = (await uniswapRouterMockFactory.deploy()) as UniswapRouterMock;
         const uniswapRouterMockAddress = await uniswapRouterMock.getAddress();
 
         // initialy set the exchange rate to pricefeed value
@@ -349,6 +351,68 @@ describe('Starknet Pooling Manager Test', function () {
         }
     });
 
+    it('Should success handle report, deposit/withdraw into a single strategy (uniswap)', async function () {
+        const bridgeAddress = await uniswapV3Strategy.bridge();
+        await starknetPoolingManager.registerStrategy(uniswapV3StrategyAddress);
+
+        const testCases: HandleReportInput[] = testCasesReportsMock1(bridgeAddress, uniswapV3StrategyAddress);
+
+        for (let i = 0; i < testCases.length; i++) {
+            const testCase = testCases[i];
+
+            console.log(`${testCase.description} - ${i + 1}/${testCases.length}`);
+
+            // L1<>L2 messages
+            const hash = await addMessageToBridge(testCase);
+
+            const beforeYieldBalance = BigInt(await wstEth.balanceOf(uniswapV3StrategyAddress));
+            const beforeBridgeUnderlayingBalance = BigInt(await admin.provider.getBalance(bridgeAddress));
+
+            // handleReport
+            await handleReport(testCase);
+            const amount = testCase.strategyReportL2[0].amount;
+
+            if (testCase.strategyReportL2[0].data == Action.DEPOSIT) {
+                // ***************************************
+                // Case 1: HandleReport deposit validation
+                // ***************************************
+
+                // Vaidations
+                const afterYieldBalance = BigInt(await wstEth.balanceOf(uniswapV3StrategyAddress));
+                const expectedShares = BigInt(await uniswapV3Strategy.underlyingToYield(amount));
+                expect(afterYieldBalance - beforeYieldBalance).equal(expectedShares);
+
+                const afterBridgeUnderlayingBalance = BigInt(await admin.provider.getBalance(bridgeAddress));
+                expect(beforeBridgeUnderlayingBalance - afterBridgeUnderlayingBalance).equal(amount);
+
+                // Check event
+                const filter = starknetPoolingManager.filters.ReportHandled;
+                const event = (await starknetPoolingManager.queryFilter(filter, -1))[0];
+                expect(event.args.epoch).eq(testCase.epoch);
+                expect(event.args.reports[0][3]).true;
+            } else if (testCase.strategyReportL2[0].data == Action.WITHDRAW) {
+                // ****************************************
+                // Case 2: HandleReport withdraw validation
+                // ****************************************
+
+                // Vaidations
+                const afterBridgeUnderlayingBalance = BigInt(await admin.provider.getBalance(bridgeAddress));
+                expect(afterBridgeUnderlayingBalance - beforeBridgeUnderlayingBalance - BigInt(amount)).eq(1);
+
+                const afterYieldBalance = BigInt(await wstEth.balanceOf(uniswapV3StrategyAddress));
+                const expectedShares = BigInt(await uniswapV3Strategy.underlyingToYield(amount));
+                expect(beforeYieldBalance - afterYieldBalance).equal(expectedShares);
+
+                // Check event
+                const filter = starknetPoolingManager.filters.ReportHandled;
+                const event = (await starknetPoolingManager.queryFilter(filter, -1))[0];
+                expect(event.args.epoch).eq(testCase.epoch);
+                expect(event.args.reports[0][3]).true;
+            }
+            expect(await starknetMock.l2ToL1Messages(hash)).eq(0);
+        }
+    });
+
     it('Should success handle report, deposit/withdraw into one strategy (sdai) when strategy reverted when withdraw', async function () {
         await starknetPoolingManager.registerStrategy(sdaiStrategyAddress);
 
@@ -384,6 +448,63 @@ describe('Starknet Pooling Manager Test', function () {
 
                 const daiTokens = BigInt(await sdaiStrategy.yieldToUnderlying(afterSdaiBalance));
                 expect(daiTokens).equal(BigInt(amount));
+
+                // Check event
+                const filter = starknetPoolingManager.filters.ReportHandled;
+                const event = (await starknetPoolingManager.queryFilter(filter, -1))[0];
+                expect(event.args.epoch).eq(testCase.epoch);
+                expect(event.args.reports[0][3]).true;
+            } else if (testCase.strategyReportL2[0].data == Action.WITHDRAW) {
+                // ****************************************
+                // Case 2: HandleReport withdraw validation
+                // ****************************************
+
+                // Check event
+                const filter = starknetPoolingManager.filters.ReportHandled;
+                const event = (await starknetPoolingManager.queryFilter(filter, -1))[0];
+                expect(event.args.epoch).eq(testCase.epoch);
+
+                // Exepct the the transaction status is not processed
+                expect(event.args.reports[0][3]).false;
+            }
+        }
+    });
+
+    it('Should success handle report, deposit/withdraw into one strategy (uniswapV3) when strategy reverted when withdraw', async function () {
+        const bridgeAddress = await uniswapV3Strategy.bridge();
+        await starknetPoolingManager.registerStrategy(uniswapV3StrategyAddress);
+
+        const testCases: HandleReportInput[] = testCasesReportsMock3(ethBridgeAddress, uniswapV3StrategyAddress);
+
+        for (let i = 0; i < testCases.length; i++) {
+            const testCase = testCases[i];
+
+            // L1<>L2 messages
+            await addMessageToBridge(testCase);
+
+            const beforeYieldBalance = BigInt(await wstEth.balanceOf(uniswapV3StrategyAddress));
+            const beforeBridgeUnderlayingBalance = BigInt(await admin.provider.getBalance(bridgeAddress));
+
+            if (i == 1) {
+                // Simulate the strategy reverted when withdraw
+                await uniswapRouterMock.setShouldFail(true);
+            }
+
+            // handleReport
+            await handleReport(testCase);
+
+            const amount = testCase.strategyReportL2[0].amount;
+            if (testCase.strategyReportL2[0].data == Action.DEPOSIT) {
+                // ***************************************
+                // Case 1: HandleReport deposit validation
+                // ***************************************
+                // Vaidations
+                const afterYieldBalance = BigInt(await wstEth.balanceOf(uniswapV3StrategyAddress));
+                const expectedShares = BigInt(await uniswapV3Strategy.underlyingToYield(amount));
+                expect(afterYieldBalance - beforeYieldBalance).equal(expectedShares);
+
+                const afterBridgeUnderlayingBalance = BigInt(await admin.provider.getBalance(bridgeAddress));
+                expect(beforeBridgeUnderlayingBalance - afterBridgeUnderlayingBalance).equal(amount);
 
                 // Check event
                 const filter = starknetPoolingManager.filters.ReportHandled;
@@ -444,6 +565,44 @@ describe('Starknet Pooling Manager Test', function () {
         }
     });
 
+    it('Should success handle report, deposit/withdraw into one strategy (uniswap) when strategy reverted when deposit', async function () {
+        await impersonateAccount(uniswapV3StrategyAddress);
+        await admin.sendTransaction({ value: ethers.parseEther('1'), to: sdaiAddress });
+        await starknetPoolingManager.registerStrategy(uniswapV3StrategyAddress);
+
+        // Do only a deposit
+        const testCases: HandleReportInput[] = [testCasesReportsMock3(ethBridgeAddress, uniswapV3StrategyAddress)[0]];
+
+        for (let i = 0; i < testCases.length; i++) {
+            const testCase = testCases[i];
+
+            // L1<>L2 messages
+            await addMessageToBridge(testCase);
+
+            if (i == 0) {
+                // Simulate the strategy reverted when withdraw
+                await uniswapRouterMock.setShouldFail(true);
+            }
+
+            // handleReport
+            await handleReport(testCase);
+
+            if (testCase.strategyReportL2[0].data == Action.DEPOSIT) {
+                // ***************************************
+                // Case 1: HandleReport deposit validation
+                // ***************************************
+
+                // Check event
+                const filter = starknetPoolingManager.filters.ReportHandled;
+                const event = (await starknetPoolingManager.queryFilter(filter, -1))[0];
+                expect(event.args.epoch).eq(testCase.epoch);
+
+                // Exepct the the transaction status is not processed
+                expect(event.args.reports[0][3]).false;
+            }
+        }
+    });
+
     it('Should success handle report, deposit/withdraw into multiple strategies (sdai, uniswapV3)', async function () {
         const l1strategyAddress1 = await sdaiStrategy.getAddress();
         const l1strategyAddress2 = await uniswapV3Strategy.getAddress();
@@ -480,11 +639,12 @@ describe('Starknet Pooling Manager Test', function () {
 
         const beforeBalances = [];
         for (let j = 0; j < strategies.length; j++) {
-            const { yielToken, underlying, strategyAddress, bridge } = strategies[j];
+            const { yielToken, underlying, strategyAddress, bridge, isETH } = strategies[j];
             beforeBalances.push({
                 beforeYieldBalance: BigInt(await yielToken.balanceOf(strategyAddress)),
-                beforeBridgeUnderlayingBalance: BigInt(await underlying.balanceOf(bridge)),
-                beforeBridgeETHBalance: BigInt(await admin.provider.getBalance(bridge)),
+                beforeBridgeUnderlayingBalance: isETH
+                    ? BigInt(await admin.provider.getBalance(bridge))
+                    : BigInt(await underlying.balanceOf(bridge)),
             });
         }
 
@@ -498,9 +658,8 @@ describe('Starknet Pooling Manager Test', function () {
             await handleReport(testCase);
 
             for (let j = 0; j < strategies.length; j++) {
-                const { strategyAddress, strategy, yielToken, underlying, isETH, bridge } = strategies[j];
-                const { beforeBridgeUnderlayingBalance, beforeYieldBalance, beforeBridgeETHBalance } =
-                    beforeBalances[j];
+                const { strategyAddress, strategy, yielToken, underlying, bridge, isETH } = strategies[j];
+                const { beforeBridgeUnderlayingBalance, beforeYieldBalance } = beforeBalances[j];
 
                 if (testCase.strategyReportL2[0].data == Action.DEPOSIT) {
                     // ***************************************
@@ -536,17 +695,23 @@ describe('Starknet Pooling Manager Test', function () {
 
                     const amount = testCase.strategyReportL2[0].amount;
                     // Vaidations
+
                     if (isETH) {
-                        // const afterBridgeETHBalance = BigInt(await admin.provider.getBalance(bridge));
-                        // const expectedUnderlying = BigInt(await strategy.yieldToUnderlying(amount));
-                        // expect(afterBridgeETHBalance - beforeBridgeETHBalance).equal(expectedUnderlying);
+                        // const afterBridgeUnderlayingBalance = BigInt(await admin.provider.getBalance(bridge));
+                        // console.log("afterBridgeUnderlayingBalance", afterBridgeUnderlayingBalance)
+                        // console.log("beforeBridgeUnderlayingBalance", beforeBridgeUnderlayingBalance)
+                        // expect((afterBridgeUnderlayingBalance - beforeBridgeUnderlayingBalance) - BigInt(amount)).eq(1)
+                        // const afterYieldBalance = BigInt(await wstEth.balanceOf(strategyAddress));
+                        // const expectedShares = BigInt(await uniswapV3Strategy.underlyingToYield(amount));
+                        // expect(beforeYieldBalance - afterYieldBalance ).equal(expectedShares);
                     } else {
-                        // const afterBridgeUnderlyingBalance = BigInt(await underlying.balanceOf(daiBridgeAddress));
-                        // const expectedUnderlying = BigInt(await strategy.yieldToUnderlying(amount));
-                        // expect(afterBridgeUnderlyingBalance - beforeBridgeUnderlayingBalance).equal(expectedUnderlying);
-                        // const afterYieldTokenBalance = BigInt(await yielToken.balanceOf(strategyAddress));
-                        // const expectedShares = BigInt(await strategy.underlyingToYield(amount));
-                        // expect(beforeYieldBalance - afterYieldTokenBalance).eq(expectedShares);
+                        // const amount = testCase.strategyReportL2[0].amount;
+                        // const afterBridgeDaiBalance = BigInt(await dai.balanceOf(bridge));
+                        // const expectedDai = BigInt(await sdaiStrategy.yieldToUnderlying(amount));
+                        // expect(afterBridgeDaiBalance - beforeBridgeUnderlayingBalance).equal(expectedDai);
+                        // const afterSdaiBalance = BigInt(await sdai.balanceOf(strategyAddress));
+                        // const expectedShares = BigInt(await sdaiStrategy.underlyingToYield(amount));
+                        // expect(beforeYieldBalance - afterSdaiBalance).eq(expectedShares);
                     }
                 }
                 expect(await starknetMock.l2ToL1Messages(hash)).eq(0);
