@@ -18,8 +18,8 @@ Yield Dex L1 is an advanced platform designed to streamline Layer 2 (L2) financi
 
 Ensure your system meets the following requirements:
 
-- **Node.js**: Version 12 or later. [Download Node.js](https://nodejs.org/)
-- **Package Manager**: Either Yarn or npm. [Install Yarn](https://yarnpkg.com/getting-started/install) | [Install npm](https://www.npmjs.com/get-npm)
+-   **Node.js**: Version 12 or later. [Download Node.js](https://nodejs.org/)
+-   **Package Manager**: Either Yarn or npm. [Install Yarn](https://yarnpkg.com/getting-started/install) | [Install npm](https://www.npmjs.com/get-npm)
 
 ## Installation Process
 
@@ -27,10 +27,9 @@ Follow these steps to set up the Yield Dex L1 environment:
 
 **Install Dependencies**: Run the following command in your terminal to install the necessary packages:
 
-   ```shell
-   yarn
-   ```
-
+```shell
+yarn
+```
 
 ## Compile
 
@@ -48,7 +47,6 @@ Run the tests to verify the correct functioning of the contracts:
 yarn hardhat test
 ```
 
-
 ## Running Scripts
 
 To run deployment scripts or any other custom scripts, use:
@@ -63,13 +61,11 @@ Scripts are located in the scipts folder.
 
 For deploying your contracts with Hardhat-Deploy, use the following command:
 
-
 ```shell
 yarn hardhat deploy --network <chosen-network>
 ```
 
 This command will execute the deployment scripts using Hardhat-Deploy, deploying your contracts to the specified network.
-
 
 ## Environment Setup
 
@@ -93,11 +89,10 @@ You can build a new strategy building contract inheriting from StrategyBase.sol,
 
 1. Fill the scripts/config.ts with deployed pooling manager on L2 and deploy the l1 poolingManager using hardhat-deploy. Add this new deployed address in the config.ts
 
-2. (only for goerli): deploy mock contract for your strategy if it is not deployed on this network like it's done with saving dai(cc deploy/savingDai.ts). Or setup the environment of the strategy if it exists like uniswapV3 where you need to deploy a new pool and add liquidity  (cc scripts/deployUniPool.ts and scripts/initAndAddLiq.ts)
+2. (only for goerli): deploy mock contract for your strategy if it is not deployed on this network like it's done with saving dai(cc deploy/savingDai.ts). Or setup the environment of the strategy if it exists like uniswapV3 where you need to deploy a new pool and add liquidity (cc scripts/deployUniPool.ts and scripts/initAndAddLiq.ts)
 
 3. Add the required addresses in the config.ts for your strategy (uniV3Router for exemple)
 
 4. Deploy the strategy using hardhat-deploy
 
 5. Register the strategy in the pooling Manager running a script (cc scripts/registerStrategies.ts)
-
