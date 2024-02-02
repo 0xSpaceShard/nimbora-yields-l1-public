@@ -8,6 +8,8 @@ import {StrategyBase} from "../StrategyBase.sol";
 import {IChainlinkAggregator} from "../../interfaces/IChainlinkAggregator.sol";
 import {ErrorLib} from "../../lib/ErrorLib.sol";
 
+/// @title Uniswap v3 strategy
+/// @author @nimbora 2024
 contract UniswapV3Strategy is StrategyBase {
     uint256 private constant SLIPPAGE_PRECISION = 10 ** 18;
 
