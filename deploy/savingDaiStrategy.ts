@@ -18,7 +18,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
                 init: {
                     methodName: 'initialize',
                     args: [
-                        addresses.l1PoolingManager, addresses.dai, addresses.sdai
+                        addresses.l1PoolingManager, addresses.dai, addresses.sdai, addresses.daiBridge
                     ],
                 },
             },
@@ -29,4 +29,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 export default func;
-func.tags = ['PoolingManager'];
+func.tags = ['SavingDaiStrategy'];
