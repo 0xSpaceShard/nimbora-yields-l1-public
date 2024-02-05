@@ -7,11 +7,11 @@ async function main() {
     console.log('User Address:', deployer.address);
     console.log('User Balance:', ethers.formatEther(balance0ETH));
     const addresses = networkAddresses['mainnet'];
-    const poolingManager = await ethers.getContractAt('PoolingManager', addresses.l1PoolingManager);
+    const poolingManager = await ethers.getContractAt('StarknetPoolingManager', addresses.l1PoolingManager);
     try {
-        console.log('Registering Uni strategies');
-        await poolingManager.registerStrategy(addresses.uniStrategy, addresses.weth, addresses.ethBridge);
-        await poolingManager.registerStrategy(addresses.sdaiStrategy, addresses.dai, addresses.daiBridge);
+        console.log('Registering strategies');
+        // await poolingManager.registerStrategy(addresses.uniStrategy);
+        await poolingManager.registerStrategy(addresses.sdaiStrategy);
     } catch (error) {
         console.error('Error:', error);
     }
