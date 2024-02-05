@@ -10,8 +10,8 @@ async function main() {
     const poolingManager = await ethers.getContractAt('StarknetPoolingManager', addresses.l1PoolingManager);
     try {
         console.log('Registering strategies');
-        // await poolingManager.registerStrategy(addresses.uniStrategy);
-        await poolingManager.registerStrategy(addresses.sdaiStrategy);
+        await poolingManager.registerStrategy(addresses.uniStrategy);
+        // await poolingManager.registerStrategy(addresses.sdaiStrategy);
     } catch (error) {
         console.error('Error:', error);
     }

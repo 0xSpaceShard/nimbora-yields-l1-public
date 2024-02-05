@@ -37,6 +37,6 @@ export const networkAddresses = {
         uniswapV3WETHWstETHPool: '',
         sdai: '0x83f20f44975d03b1b09e64809b757c47f942beea',
         sdaiStrategy: '0xAFa27423F3bb4c0337946dDcd1802588807571bf',
-        uniStrategy: '',
+        uniStrategy: '0xE5e2134e536fbfD7513094646E27C401bbb03eF6',
     },
 };

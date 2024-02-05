@@ -20,7 +20,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
                 init: {
                     methodName: 'initialize',
                     args: [
-                        addresses.l1PoolingManager, addresses.weth, addresses.wsteth, addresses.uniswapv3Router, addresses.uniswapv3Factory, addresses.wstethPricefeed, minReceivedAmountFactor, fee
+                        addresses.l1PoolingManager, addresses.weth, addresses.wsteth, addresses.ethBridge, addresses.uniswapv3Router, addresses.uniswapv3Factory, addresses.wstethPricefeed, minReceivedAmountFactor, fee
                     ],
                 },
             },
@@ -31,4 +31,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 export default func;
-func.tags = ['PoolingManager'];
+func.tags = ['UniswapV3Strategy'];
