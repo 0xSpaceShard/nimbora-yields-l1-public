@@ -22,8 +22,8 @@ export const networkAddresses = {
     ['mainnet']: {
         weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
         starknetCore: '0xc662c410c0ecf747543f5ba90660f6abebd9c8c4',
-        l1PoolingManager: '0x6AA1d8fa64546C5F962bf844390241dCE42aF510',
-        l2PoolingManager: '0x1e36055513f11f48cf84690e6243932a32211acb0a150ba610c78ce22ead306',
+        l1PoolingManager: '0x56B4518E4053eB3C24f68852899F7a6d57530caF',
+        l2PoolingManager: '0x65a953f89a314a427e960114c4b9bb83e0e4195f801f12c25e4a323a76da0a9',
         l2Selector: '0x010e13e50cb99b6b3c8270ec6e16acfccbe1164a629d74b43549567a77593aff',
         ethBridge: '0xae0Ee0A63A2cE6BaeEFFE56e7714FB4EFE48D419',
         dai: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
@@ -36,7 +36,7 @@ export const networkAddresses = {
         nonfungiblePositionManager: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
         uniswapV3WETHWstETHPool: '',
         sdai: '0x83f20f44975d03b1b09e64809b757c47f942beea',
-        sdaiStrategy: '0xe43e21bD7ebb2441652F0efeE8476dE134b80CBB',
-        uniStrategy: '0xf59192545C173aCFCc0f83CFA98CaD3e0c76aF66',
+        sdaiStrategy: '0xAFa27423F3bb4c0337946dDcd1802588807571bf',
+        uniStrategy: '',
     },
 };
