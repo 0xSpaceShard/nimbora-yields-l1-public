@@ -74,20 +74,25 @@ For deploying your contracts with Hardhat-Deploy, use the following command:
 Before running the above commands, make sure to set up your environment variables. Change the .env.example file to .env and update the values file in the root directory of your project and fill it as per the example provided in .env.example :
 
 ```plaintext
-ALCHEMY_KEY key=<Your Alchemy Key>
-PRIVATE_KEY=<Your Private Key>
+INFURA_API_KEY=<Your Infura API Key>
+PRIVATE_KEY=<Your private key>
+NETWORK=<goerli or mainnet>
+ETHERSCAN_URL=<Your Ethercan API Key> 
 ```
 
-Alchemy API: Your project ID from Infura, used to connect to Ethereum networks.
+INFURA_API_KEY: Your project ID from Infura, used to connect to Ethereum networks.
 PRIVATE_KEY: Your Ethereum private key, used for transactions and contract deployment.
+NETWORK: Desired Network, goerli or mainnet.
+ETHERSCAN_URL: Your Etherscan API key, used to verify your contracts.
+
 
 ## Building a new strategy
 
-You can build a new strategy building contract inheriting from StrategyBase.sol, you'll need to override virtual methods and add potential additional logic related to the strategy you want to build. 2 built strategies are proposed as exemples savingDai.sol and uniswapV3.sol
+You can build a new strategy building contract inheriting from StrategyBase.sol, you'll need to override virtual methods and add potential additional logic related to the strategy you want to build. 2 built strategies are proposed as exemples savingDai.sol and uniswapV3.sol, you can start building your own strategy with Template.sol in contracts/strategies.
 
 ## Deploying pooling manager and adding new strategies
 
-1. Fill the scripts/config.ts with deployed pooling manager on L2 and deploy the l1 poolingManager using hardhat-deploy. Add this new deployed address in the config.ts
+1. Fill the scripts/config.ts with deployed pooling manager on L2 and deploy the l1 poolingManager using hardhat-deploy. Add this new deployed address in the config.ts 
 
 2. (only for goerli): deploy mock contract for your strategy if it is not deployed on this network like it's done with saving dai(cc deploy/savingDai.ts). Or setup the environment of the strategy if it exists like uniswapV3 where you need to deploy a new pool and add liquidity (cc scripts/deployUniPool.ts and scripts/initAndAddLiq.ts)
 
