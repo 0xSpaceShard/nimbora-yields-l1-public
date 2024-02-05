@@ -5,7 +5,7 @@ import { networkAddresses } from '../scripts/config';
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const { deployments, getNamedAccounts } = hre;
     const { deployer } = await getNamedAccounts();
-    const { deploy, get } = deployments;
+    const { deploy,  } = deployments;
     const network: string = hre.network.name;
     const addresses = network == 'mainnet' ? networkAddresses['mainnet'] : networkAddresses['goerli'];
     const minReceivedAmountFactor = "999000000000000000"
