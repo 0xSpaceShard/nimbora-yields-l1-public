@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+/// @notice Starknet messaging interface
 interface IStarknetMessaging {
-    /// @notice Consumes a message that was sent from an L2 contract. Returns the hash of the message.
     function consumeMessageFromL2(uint256 fromAddress, uint256[] calldata payload) external returns (bytes32);
 
-    /// @notice Execute a function call on L2
     function sendMessageToL2(
         uint256 toAddress,
         uint256 selector,

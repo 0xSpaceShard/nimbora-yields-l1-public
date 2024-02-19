@@ -1,82 +1,77 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../interfaces/IStrategyBase.sol";
+import {UUPSUpgradeable, Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
-import "../lib/ErrorLib.sol";
+import {IStrategyBase} from "../interfaces/IStrategyBase.sol";
+import {ErrorLib} from "../lib/ErrorLib.sol";
 
-abstract contract StrategyBase is Initializable, PausableUpgradeable, IStrategyBase {
+/// @title The Strategy Base
+/// @author @nimbora 2024
+abstract contract StrategyBase is IStrategyBase, Initializable, UUPSUpgradeable {
     address public poolingManager;
     address public underlyingToken;
     address public yieldToken;
+    address public bridge;
 
-    function initializeStrategyBase(
-        address _l2PoolingManager,
+    function _strategyBase__init(
+        address _poolingManager,
         address _underlyingToken,
-        address _yieldToken
-    ) public initializer {
-        __Pausable_init();
-        if (_l2PoolingManager == address(0)) revert ErrorLib.ZeroAddress();
-        if (_underlyingToken == address(0)) revert ErrorLib.ZeroAddress();
-        if (_yieldToken == address(0)) revert ErrorLib.ZeroAddress();
-        poolingManager = _l2PoolingManager;
+        address _yieldToken,
+        address _bridge
+    ) internal {
+        poolingManager = _poolingManager;
         underlyingToken = _underlyingToken;
         yieldToken = _yieldToken;
+        bridge = _bridge;
     }
 
-    function handleReport(
-        uint256 actionId,
-        uint256 amount
-    ) external payable override whenNotPaused returns (uint256, uint256) {
-        _assertOnlyPoolingManager();
-        uint256 withdrawalAmount = 0;
-        if (actionId == DEPOSIT) {
-            _deposit(amount);
-        } else if (actionId == WITHDRAW) {
-            withdrawalAmount = _withdraw(amount);
-            // Transfer to pooling manager should be implemented in _withdraw()
-        } else if (actionId == REPORT) {} else {
-            revert ErrorLib.UnknownActionId();
-        }
-        return (_nav(), withdrawalAmount);
+    function depositCalldata(uint256 _amount) external view virtual returns (address, bytes memory);
+
+    function addressToApprove() external view virtual returns (address);
+
+    function _yieldToUnderlying(uint256 _amount) internal view virtual returns (uint256);
+
+    function _underlyingToYield(uint256 _amount) internal view virtual returns (uint256);
+
+    function _withdraw(uint256 _amount) internal virtual returns (uint256);
+
+    /// @dev Authorizes an upgrade to a new contract implementation, ensuring that only an authorized role can perform the upgrade.
+    function _authorizeUpgrade(address) internal view override {
+        _assertOnlyRoleOwner();
     }
 
-    function nav() public view returns (uint256) {
+    function withdraw(uint256 _amount) external returns (uint256) {
+        if (msg.sender != poolingManager) revert ErrorLib.CallerIsNotPoolingManager();
+        return _withdraw(_amount);
+    }
+
+    function nav() external view returns (uint256) {
         return _nav();
     }
 
-    function yieldToUnderlying(uint256 amount) public view returns (uint256) {
-        return _yieldToUnderlying(amount);
+    function yieldToUnderlying(uint256 _amount) external view returns (uint256) {
+        return _yieldToUnderlying(_amount);
     }
 
-    function underlyingToYield(uint256 amount) public view returns (uint256) {
-        return _underlyingToYield(amount);
+    function underlyingToYield(uint256 _amount) external view returns (uint256) {
+        return _underlyingToYield(_amount);
     }
 
-    function yieldBalance() public view returns (uint256) {
-        return IERC20(yieldToken).balanceOf(address(this));
-    }
-
-    function _assertOnlyPoolingManager() internal view {
-        if (address(msg.sender) != poolingManager) revert ErrorLib.InvalidCaller();
+    function yieldBalance() external view returns (uint256) {
+        return _yieldBalance();
     }
 
     function _assertOnlyRoleOwner() internal view {
-        if (!IAccessControl(poolingManager).hasRole(0, address(msg.sender))) revert ErrorLib.InvalidCaller();
+        if (!IAccessControl(poolingManager).hasRole(0, msg.sender)) revert ErrorLib.CallerIsNotAdmin();
     }
 
-    function _deposit(uint256 amount) internal virtual;
-
-    function _withdraw(uint256 amount) internal virtual returns (uint256);
+    function _yieldBalance() internal view returns (uint256) {
+        return IERC20(yieldToken).balanceOf(address(this));
+    }
 
     function _nav() internal view returns (uint256) {
-        return _yieldToUnderlying(yieldBalance());
+        return _yieldToUnderlying(_yieldBalance());
     }
-
-    function _yieldToUnderlying(uint256 amount) internal view virtual returns (uint256);
-
-    function _underlyingToYield(uint256 amount) internal view virtual returns (uint256);
 }

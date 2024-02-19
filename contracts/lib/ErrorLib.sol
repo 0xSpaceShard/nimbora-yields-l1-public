@@ -2,15 +2,16 @@
 pragma solidity ^0.8.20;
 
 library ErrorLib {
-    error NotRelayer();
-    error UnknownUnderlying();
-    error ZeroAddress();
-    error InvalidEthAmount();
-    error InvalidCaller();
-    error UnknownActionId();
-    error InvalidSlippage();
-    error InvalidDecimals();
+    error CallerIsNotPoolingManager();
+    error CallerIsNotAdmin();
     error InvalidPoolingManager();
-    error NoL1Report();
-    error NotEnoughSuccessCalls();
+    error NotPoolingManager();
+    error InvalidUnderlyingToken();
+    error PoolNotExist();
+    error InvalidSlippage();
+    error ErrorStrategyNotExist(address strategy);
+    error ErrorBeforeProcessStrategy(address strategy);
+    error ErrorDepositStrategy(address strategy);
+    error ErrorWithdrawStrategy(address strategy);
+    error ErrorAfterWithdrawStrategy(address strategy);
 }

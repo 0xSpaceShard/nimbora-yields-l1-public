@@ -6,7 +6,7 @@ import {IStarknetBridge} from "../interfaces/IStarknetBridge.sol";
 
 /// @title Messaging contract.
 /// @author Spaceshard team 2023.
-contract Messaging {
+contract StarknetMessaging {
     uint256 private constant UINT256_PART_SIZE_BITS = 128;
     uint256 private constant UINT256_PART_SIZE = 2 ** UINT256_PART_SIZE_BITS;
 
@@ -15,7 +15,7 @@ contract Messaging {
 
     /// @notice initialize the trove handler.
     /// @param _starknetCore Starknet core interface.
-    function initializeMessaging(address _starknetCore) internal {
+    function __messaging_init(address _starknetCore) internal {
         starknetCore = IStarknetMessaging(_starknetCore);
     }
 

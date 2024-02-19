@@ -33,6 +33,7 @@ interface IMinimalSwapRouter {
 
 contract UniswapRouterMock is IMinimalSwapRouter {
     uint256 private constant PRECISION = 1e18;
+    bool shouldRevert;
 
     // Exchange rates with precision
     mapping(address => mapping(address => uint256)) public exchangeRates;
@@ -45,6 +46,7 @@ contract UniswapRouterMock is IMinimalSwapRouter {
     function exactInputSingle(
         ExactInputSingleParams calldata params
     ) external payable override returns (uint256 amountOut) {
+        require(!shouldRevert, "Simulate revert");
         require(IERC20(params.tokenIn).transferFrom(msg.sender, address(this), params.amountIn), "Transfer failed");
 
         amountOut = (params.amountIn * exchangeRates[params.tokenIn][params.tokenOut]) / PRECISION;
@@ -57,6 +59,7 @@ contract UniswapRouterMock is IMinimalSwapRouter {
     function exactOutputSingle(
         ExactOutputSingleParams calldata params
     ) external payable override returns (uint256 amountIn) {
+        require(!shouldRevert, "Simulate revert");
         // Calculate amountIn with precision
         amountIn = (params.amountOut * PRECISION) / exchangeRates[params.tokenIn][params.tokenOut];
         require(amountIn <= params.amountInMaximum, "Excessive input amount");
@@ -65,5 +68,9 @@ contract UniswapRouterMock is IMinimalSwapRouter {
 
         require(IERC20(params.tokenOut).transfer(params.recipient, params.amountOut), "Transfer failed");
         return amountIn;
+    }
+
+    function setShouldFail(bool _shouldRevert) external {
+        shouldRevert = _shouldRevert;
     }
 }
