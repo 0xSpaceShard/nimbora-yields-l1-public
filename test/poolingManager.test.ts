@@ -824,6 +824,7 @@ describe('Starknet Pooling Manager Test', function () {
                 bridgeWithdrawInfo,
                 strategyReportL2,
                 bridgeDepositInfo,
+                false,
             );
             expect(hash).to.equal(BigInt(expectedHash));
         }
@@ -855,5 +856,27 @@ describe('Starknet Pooling Manager Test', function () {
         await expect(
             starknetPoolingManager.registerStrategy(await invalidSdaiStrategy.getAddress()),
         ).revertedWithCustomError(starknetPoolingManager, 'InvalidPoolingManager');
+    });
+
+    it('Should return a valid l1->l2 hash', async function () {
+        // Epoch-4: pooling manager address: 0x065a953f89a314a427e960114c4b9bb83e0e4195f801f12c25e4a323a76da0a9
+        const l2Hash = 9394751887553205148934003660731450063757890657721159828438100138263725105979n;
+
+        const data = [
+            {
+                l1Strategy: '0xAFa27423F3bb4c0337946dDcd1802588807571bf',
+                data: 5009861221786695105n,
+                amount: 0n,
+                processed: true,
+            },
+            {
+                l1Strategy: '0xE5e2134e536fbfD7513094646E27C401bbb03eF6',
+                data: 19993021130296587n,
+                amount: 0n,
+                processed: false,
+            },
+        ];
+        const l1Hash = await starknetPoolingManager.hashFromReport(0, [], data, [], true);
+        expect(l1Hash).equal(l2Hash);
     });
 });

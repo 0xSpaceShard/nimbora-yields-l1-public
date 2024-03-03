@@ -116,14 +116,14 @@ abstract contract PoolingManagerBase is UUPSUpgradeable, AccessControlUpgradeabl
         uint256 _l2BridgeEthFee,
         uint256 _l2MessagingEthFee
     ) external payable onlyRole(RELAYER_ROLE) returns (bool) {
-        _verifyL2Calldata(hashFromReport(_epoch, _bridgeWithdrawInfo, _strategyReport, _bridgeDepositInfo));
+        _verifyL2Calldata(hashFromReport(_epoch, _bridgeWithdrawInfo, _strategyReport, _bridgeDepositInfo, false));
         _withdrawFromBridges(_bridgeWithdrawInfo);
         bool processed = _handleReport(_strategyReport, _bridgeDepositInfo);
         _depositToBridges(_bridgeDepositInfo, _l2BridgeEthFee);
         BridgeData[] memory emptyBridgeInfo = new BridgeData[](0);
         _sendMessageL2(
             _epoch,
-            hashFromReport(0, emptyBridgeInfo, _strategyReport, emptyBridgeInfo),
+            hashFromReport(0, emptyBridgeInfo, _strategyReport, emptyBridgeInfo, true),
             _l2MessagingEthFee
         );
         emit ReportHandled(_epoch, _strategyReport);
@@ -227,7 +227,8 @@ abstract contract PoolingManagerBase is UUPSUpgradeable, AccessControlUpgradeabl
         uint256 _epoch,
         BridgeData[] memory _bridgeWithdrawInfo,
         StrategyReport[] memory _strategyReport,
-        BridgeData[] memory _bridgeDepositInfo
+        BridgeData[] memory _bridgeDepositInfo,
+        bool _send
     ) public pure returns (uint256) {
         bytes memory encodedData = _epoch != 0 ? abi.encodePacked(_epoch) : abi.encodePacked();
 
@@ -249,6 +250,9 @@ abstract contract PoolingManagerBase is UUPSUpgradeable, AccessControlUpgradeabl
                 _strategyReport[i].data,
                 _strategyReport[i].amount
             );
+            if (_send) {
+                encodedData = abi.encodePacked(encodedData, uint256(_strategyReport[i].processed ? 1 : 0));
+            }
             unchecked {
                 i++;
             }
