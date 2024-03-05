@@ -16,7 +16,7 @@ jobs:
                   node-version: 20.x
 
             - name: Setup envs
-              run: cp .env.example .env
+              run: cp .env.example .env && source .env
 
             - name: Install
               run: yarn
