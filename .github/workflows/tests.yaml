@@ -18,6 +18,9 @@ jobs:
             - name: Setup envs
               run: cp .env.example .env
 
+            - name: Install
+              run: yarn
+
             - name: Compile contracts
               run: yarn compile
 
