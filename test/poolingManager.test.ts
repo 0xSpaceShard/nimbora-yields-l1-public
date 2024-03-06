@@ -283,6 +283,7 @@ describe('Starknet Pooling Manager Test', function () {
                 const event = (await starknetPoolingManager.queryFilter(filter, -1))[0];
                 expect(event.args.epoch).eq(testCase.epoch);
             }
+
             expect(await starknetMock.l2ToL1Messages(hash)).eq(0);
         }
     });
@@ -742,6 +743,7 @@ describe('Starknet Pooling Manager Test', function () {
             inputs.strategyReportL2,
             inputs.bridgeDepositInfo,
         );
+
         const messageReceivedL1 = computeMessageReceivedL1(
             l2PoolingManager,
             await starknetPoolingManager.getAddress(),
@@ -749,6 +751,7 @@ describe('Starknet Pooling Manager Test', function () {
         );
         await starknetMock.addMessage([messageReceivedL1]);
         expect(await starknetMock.l2ToL1Messages(messageReceivedL1)).not.eq(0);
+
         return messageReceivedL1;
     };
 
@@ -824,7 +827,6 @@ describe('Starknet Pooling Manager Test', function () {
                 bridgeWithdrawInfo,
                 strategyReportL2,
                 bridgeDepositInfo,
-                false,
             );
             expect(hash).to.equal(BigInt(expectedHash));
         }
@@ -876,7 +878,7 @@ describe('Starknet Pooling Manager Test', function () {
                 processed: false,
             },
         ];
-        const l1Hash = await starknetPoolingManager.hashFromReport(0, [], data, [], true);
+        const l1Hash = await starknetPoolingManager.hashFromReport(0, [], data, []);
         expect(l1Hash).equal(l2Hash);
     });
 
@@ -908,9 +910,8 @@ describe('Starknet Pooling Manager Test', function () {
             },
         ];
 
-        const l1Hash = await starknetPoolingManager.hashFromReport(5n, bridgeDeposit, data, [], true);
+        const l1Hash = await starknetPoolingManager.hashFromReport(5n, bridgeDeposit, data, []);
         const l1MessageHashFromL1Hash = computeMessageReceivedL1(l2Pooling, l1Pooling, l1Hash);
-        console.log(l1MessageHashFromL1Hash);
         expect(l1MessageHashFromL1Hash).equal(messsageHash);
     });
 });

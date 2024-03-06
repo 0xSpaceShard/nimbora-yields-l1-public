@@ -28,6 +28,7 @@ export function computeHashFromL2Report(
     if (new_epoch != 0) {
         encodedData += encoder.encode(['uint256'], [new_epoch]).slice(2);
     }
+
     for (let index = 0; index < bridgeWithdrawInfo.length; index++) {
         const bridgeInfoElement = bridgeWithdrawInfo[index];
         encodedData += encoder
@@ -39,8 +40,13 @@ export function computeHashFromL2Report(
         const strategyReportL2Element = strategyReportL2[index];
         encodedData += encoder
             .encode(
-                ['uint256', 'uint256', 'uint256'],
-                [strategyReportL2Element.l1Strategy, strategyReportL2Element.data, strategyReportL2Element.amount],
+                ['uint256', 'uint256', 'uint256', 'uint256'],
+                [
+                    strategyReportL2Element.l1Strategy,
+                    strategyReportL2Element.data,
+                    strategyReportL2Element.amount,
+                    strategyReportL2Element.processed == false ? 0 : 1,
+                ],
             )
             .slice(2);
     }
