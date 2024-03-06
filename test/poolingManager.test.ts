@@ -879,4 +879,38 @@ describe('Starknet Pooling Manager Test', function () {
         const l1Hash = await starknetPoolingManager.hashFromReport(0, [], data, [], true);
         expect(l1Hash).equal(l2Hash);
     });
+
+    it('Should return a valid l2->l1 hash', async function () {
+        const l1Pooling = BigInt('0x56b4518e4053eb3c24f68852899f7a6d57530caf');
+        const l2Pooling = BigInt('0x065a953f89a314a427e960114c4b9bb83e0e4195f801f12c25e4a323a76da0a9');
+        const l2Hash = BigInt('0xef4c6fb22ee76cf9c19a255532d033be4d869af666a25e1c86d9b8d9fc62e597');
+        const messsageHash = computeMessageReceivedL1(l2Pooling, l1Pooling, l2Hash);
+
+        const bridgeDeposit = [
+            {
+                bridge: '0x9F96FE0633EE838D0298E8B8980E6716BE81388D',
+                amount: 13025213257487556511n,
+            },
+        ];
+
+        const data = [
+            {
+                l1Strategy: '0xAFA27423F3BB4C0337946DDCD1802588807571BF',
+                data: 0n,
+                amount: 13025213257487556511n,
+                processed: true,
+            },
+            {
+                l1Strategy: '0xE5E2134E536FBFD7513094646E27C401BBB03EF6',
+                data: 19993021130296587n,
+                amount: 0n,
+                processed: true,
+            },
+        ];
+
+        const l1Hash = await starknetPoolingManager.hashFromReport(5n, bridgeDeposit, data, [], true);
+        const l1MessageHashFromL1Hash = computeMessageReceivedL1(l2Pooling, l1Pooling, l1Hash);
+        console.log(l1MessageHashFromL1Hash);
+        expect(l1MessageHashFromL1Hash).equal(messsageHash);
+    });
 });
