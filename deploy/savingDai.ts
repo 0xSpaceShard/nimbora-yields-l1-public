@@ -1,4 +1,3 @@
-
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import { networkAddresses } from '../scripts/config';
@@ -16,8 +15,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     //     args: [addresses.dai],
     // });
     // console.log(`SavingDaiToken contract deployed to ${savingDaiTokenDeployment.address}`);
-
-}
+};
 export default func;
 func.tags = ['SavingDaiToken'];
-

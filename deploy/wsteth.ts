@@ -12,8 +12,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     //     args: ["1154006573395890053"],
     // });
     // console.log(`Wsteth contract deployed to ${weth.address}`);
-
-}
+};
 export default func;
 func.tags = ['Wsteth'];
-
