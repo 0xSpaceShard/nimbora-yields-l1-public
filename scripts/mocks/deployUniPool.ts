@@ -14,7 +14,7 @@ async function main() {
   const uniswapV3Factory = new ethers.Contract(
     addresses.uniswapv3Factory,
     IUniswapV3FactoryABI,
-    deployer
+    deployer,
   );
 
   const fee = 3000;

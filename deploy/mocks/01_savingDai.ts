@@ -19,7 +19,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [addresses.dai],
   });
   console.log(
-    `SavingDaiToken contract deployed to ${savingDaiTokenDeployment.address}`
+    `SavingDaiToken contract deployed to ${savingDaiTokenDeployment.address}`,
   );
 
   addresses.sdai = savingDaiTokenDeployment.address;

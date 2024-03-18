@@ -8,7 +8,7 @@ async function main() {
 
   const poolingManager = await ethers.getContractAt(
     "PoolingManager",
-    addresses.l1PoolingManager
+    addresses.l1PoolingManager,
   );
 
   try {

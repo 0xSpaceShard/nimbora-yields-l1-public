@@ -18,8 +18,8 @@ Yield Dex L1 is an advanced platform designed to streamline Layer 2 (L2) financi
 
 Ensure your system meets the following requirements:
 
--   **Node.js**: Version 12 or later. [Download Node.js](https://nodejs.org/)
--   **Package Manager**: Either Yarn or npm. [Install Yarn](https://yarnpkg.com/getting-started/install) | [Install npm](https://www.npmjs.com/get-npm)
+- **Node.js**: Version 12 or later. [Download Node.js](https://nodejs.org/)
+- **Package Manager**: Either Yarn or npm. [Install Yarn](https://yarnpkg.com/getting-started/install) | [Install npm](https://www.npmjs.com/get-npm)
 
 ## Installation Process
 

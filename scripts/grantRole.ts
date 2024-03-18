@@ -10,7 +10,7 @@ async function main() {
 
   const poolingManager = await ethers.getContractAt(
     "PoolingManager",
-    addresses.l1PoolingManager
+    addresses.l1PoolingManager,
   );
 
   const role = RELAYER_ROLE;

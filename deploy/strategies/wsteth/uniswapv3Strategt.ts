@@ -37,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   console.log(
-    `Uniswap strategy deployed at ${uniswapV3StrategyDeployment.address}`
+    `Uniswap strategy deployed at ${uniswapV3StrategyDeployment.address}`,
   );
 
   addresses.uniStrategy = uniswapV3StrategyDeployment.address;
