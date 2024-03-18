@@ -46,7 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     },
   });
   console.log(
-    `Pooling manager contract deployed at ${poolingManagerDeployment.address}`
+    `Pooling manager contract deployed at ${poolingManagerDeployment.address}`,
   );
 
   addresses.l1PoolingManager = poolingManagerDeployment.address;

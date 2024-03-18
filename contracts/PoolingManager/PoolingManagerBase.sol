@@ -191,12 +191,21 @@ abstract contract PoolingManagerBase is UUPSUpgradeable, AccessControlUpgradeabl
                 }
             }
 
-            _report[i] = StrategyReport({
-                l1Strategy: address(l1Strategy),
-                data: l1Strategy.nav(),
-                amount: amount,
-                processed: processed
-            });
+            if (processed) {
+                _report[i] = StrategyReport({
+                    l1Strategy: address(l1Strategy),
+                    data: l1Strategy.nav(),
+                    amount: amount,
+                    processed: true
+                });
+            } else {
+                _report[i] = StrategyReport({
+                    l1Strategy: address(l1Strategy),
+                    data: action,
+                    amount: amountIn,
+                    processed: false
+                });
+            }
 
             unchecked {
                 i++;
@@ -249,6 +258,7 @@ abstract contract PoolingManagerBase is UUPSUpgradeable, AccessControlUpgradeabl
                 _strategyReport[i].data,
                 _strategyReport[i].amount
             );
+            encodedData = abi.encodePacked(encodedData, uint256(_strategyReport[i].processed ? 1 : 0));
             unchecked {
                 i++;
             }

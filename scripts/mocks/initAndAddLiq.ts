@@ -16,7 +16,7 @@ async function main() {
   const positionManager = new ethers.Contract(
     positionManagerAddress,
     INonfungiblePositionManagerABI,
-    deployer
+    deployer,
   );
 
   const poolAddress = addresses.uniswapV3WETHWstETHPool;
@@ -25,7 +25,7 @@ async function main() {
   const token0Contract = await ethers.getContractAt("WETH9", addresses.weth);
   const token1Contract = await ethers.getContractAt(
     "WstethMintable",
-    addresses.wsteth
+    addresses.wsteth,
   );
 
   const initialAmountWstETH = ethers.parseEther("100");

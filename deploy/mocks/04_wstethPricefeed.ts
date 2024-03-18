@@ -23,7 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [18, "999699900733487000"],
   });
   console.log(
-    `steth PriceFeed contract deployed to ${stethPriceFeedDeployment.address}`
+    `steth PriceFeed contract deployed to ${stethPriceFeedDeployment.address}`,
   );
 
   const wstethPriceFeedDeployment = await deploy(`wstethPriceFeed`, {
@@ -33,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [stethPriceFeedDeployment.address, addresses.wsteth],
   });
   console.log(
-    `Wsteth PriceFeed contract deployed to ${wstethPriceFeedDeployment.address}`
+    `Wsteth PriceFeed contract deployed to ${wstethPriceFeedDeployment.address}`,
   );
   configs.goerli.wstethPricefeed = wstethPriceFeedDeployment.address;
   writeConfigs(configs);

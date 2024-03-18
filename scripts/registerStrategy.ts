@@ -8,7 +8,7 @@ async function main() {
   const addresses = configs[network.name];
   const poolingManager = await ethers.getContractAt(
     "PoolingManager",
-    addresses.l1PoolingManager
+    addresses.l1PoolingManager,
   );
 
   const { strategy, underlying, bridge } = addresses[strategyName];

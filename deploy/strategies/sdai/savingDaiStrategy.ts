@@ -27,7 +27,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   console.log(
-    `SavingDai strategy deployed at ${savingDaiStrategyDeployment.address}`
+    `SavingDai strategy deployed at ${savingDaiStrategyDeployment.address}`,
   );
 
   addresses.sdaiStrategy.strategy = savingDaiStrategyDeployment.address;

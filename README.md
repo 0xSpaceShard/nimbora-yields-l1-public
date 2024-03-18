@@ -31,26 +31,6 @@ Follow these steps to set up the Yield Dex L1 environment:
 yarn
 ```
 
-## Environment Setup
-
-For deploying your contracts with Hardhat-Deploy, use the following command:
-
-Before running the above commands, make sure to set up your environment variables. Change the .env.example file to .env and update the values file in the root directory of your project and fill it as per the example provided in .env.example :
-
-```plaintext
-ALCHEMY_RPC_URL=<Your Alchemy Key>
-PRIVATE_KEY=<Your Private Key>
-NETWORK=goerli
-STRATEGY_NAME=sdai
-```
-
-ALCHEMY_RPC_URL: Your project ID from Infura, used to connect to Ethereum networks.
-PRIVATE_KEY: Your Ethereum private key, used for transactions and contract deployment.
-NETWORK: The network id, can be `sepolia`, `goerli` or `mainnet`
-STRATEGY_NAME: The strategy name you want to deploy, required by `./setup.sh`
-
-Duplicate the `.env.example` and rename it to `.env` file and update the envs.
-
 ## Compile
 
 To compile the smart contracts, use the following command:
@@ -67,7 +47,6 @@ Run the tests to verify the correct functioning of the contracts:
 yarn hardhat test
 ```
 
-
 ## Running Scripts
 
 To run deployment scripts or any other custom scripts, use:
@@ -82,48 +61,42 @@ Scripts are located in the scipts folder.
 
 For deploying your contracts with Hardhat-Deploy, use the following command:
 
-
-1. Core contracts (PoolingManager)
 ```shell
-yarn hardhat deploy --network ${NETWORK} --deploy-scripts deploy/core
-```
-
-2. Deploy Mock contracts (testnet only)
-```shell
-yarn hardhat deploy --network ${NETWORK} --deploy-scripts deploy/mocks
-```
-
-3. Deploy sDAI strategy
-```shell
-yarn hardhat deploy --network ${NETWORK} --deploy-scripts deploy/strategies/sdai
+yarn hardhat deploy --network <chosen-network>
 ```
 
 This command will execute the deployment scripts using Hardhat-Deploy, deploying your contracts to the specified network.
 
+## Environment Setup
+
+For deploying your contracts with Hardhat-Deploy, use the following command:
+
+Before running the above commands, make sure to set up your environment variables. Change the .env.example file to .env and update the values file in the root directory of your project and fill it as per the example provided in .env.example :
+
+```plaintext
+INFURA_API_KEY=<Your Infura API Key>
+PRIVATE_KEY=<Your private key>
+NETWORK=<goerli or mainnet>
+ETHERSCAN_URL=<Your Ethercan API Key>
+```
+
+INFURA_API_KEY: Your project ID from Infura, used to connect to Ethereum networks.
+PRIVATE_KEY: Your Ethereum private key, used for transactions and contract deployment.
+NETWORK: Desired Network, goerli or mainnet.
+ETHERSCAN_URL: Your Etherscan API key, used to verify your contracts.
+
 ## Building a new strategy
 
-You can build a new strategy building contract inheriting from StrategyBase.sol, you'll need to override virtual methods and add potential additional logic related to the strategy you want to build. 2 built strategies are proposed as exemples savingDai.sol and uniswapV3.sol
+You can build a new strategy building contract inheriting from StrategyBase.sol, you'll need to override virtual methods and add potential additional logic related to the strategy you want to build. 2 built strategies are proposed as exemples savingDai.sol and uniswapV3.sol, you can start building your own strategy with Template.sol in contracts/strategies.
 
-### Deploy a new strategy
-Inside the deploy/strategies folder, implement the logic to deploy your strategy. Then update the `STRATEGY_NAME` with the path of your strategy. For example, to deploy sDAI `STRATEGY_NAME=sdai` then run:
+## Deploying pooling manager and adding new strategies
 
-### Register a new strategy
-To register the strategy, update the config file `config.json`. For example for sdai
+1. Fill the scripts/config.ts with deployed pooling manager on L2 and deploy the l1 poolingManager using hardhat-deploy. Add this new deployed address in the config.ts
 
-```json
-{
-   ...
-   "sdaiStrategy": {
-      "strategy": "0x2fbbaf2b56D4bC8adEc9563b680097F9bbA02B23",
-      "underlying": "0x11fE4B6AE13d2a6055C8D9cF65c55bac32B5d844",
-      "bridge": "0xaB00D7EE6cFE37cCCAd006cEC4Db6253D7ED3a22"
-   }
-}
-```
-it's important to have such naming `<startegyname>Strategy`. Then run the script 
+2. (only for goerli): deploy mock contract for your strategy if it is not deployed on this network like it's done with saving dai(cc deploy/savingDai.ts). Or setup the environment of the strategy if it exists like uniswapV3 where you need to deploy a new pool and add liquidity (cc scripts/deployUniPool.ts and scripts/initAndAddLiq.ts)
 
-When you are done with the setup run the following script to deploy and setup your strategy
+3. Add the required addresses in the config.ts for your strategy (uniV3Router for exemple)
 
-```shell
-./setup.sh
-```
+4. Deploy the strategy using hardhat-deploy
+
+5. Register the strategy in the pooling Manager running a script (cc scripts/registerStrategies.ts)
