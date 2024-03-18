@@ -1146,8 +1146,6 @@ describe("Starknet Pooling Manager Test", function () {
       data,
       [],
     );
-    console.log("herrreee");
-    console.log(l1Hash);
     const l1MessageHashFromL1Hash = computeMessageReceivedL1(
       l2Pooling,
       l1Pooling,
