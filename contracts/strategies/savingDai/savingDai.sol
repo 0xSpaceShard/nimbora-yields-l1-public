@@ -40,7 +40,8 @@ contract SavingDaiStrategy is StrategyBase {
         if (yieldAmountToWithdraw > strategyYieldBalance) {
             return ISavingDai(yieldToken).redeem(strategyYieldBalance, poolingManager, address(this));
         } else {
-            return ISavingDai(yieldToken).withdraw(_amount, poolingManager, address(this));
+            ISavingDai(yieldToken).withdraw(_amount, poolingManager, address(this));
+            return (_amount);
         }
     }
 
